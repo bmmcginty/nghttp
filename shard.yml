@@ -1,0 +1,9 @@
+name: nghttp
+version: 0.1.0
+
+authors:
+  - Brandon McGinty-Carroll <bmmcginty@bmcginty.us>
+
+crystal: 0.20.5
+
+license: MIT
