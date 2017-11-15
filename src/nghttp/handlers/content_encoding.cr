@@ -15,7 +15,8 @@ out_io = case encoding
 when "gzip"
 Gzip::Reader.new out_io
 when "deflate"
-Flate::Reader.new out_io
+Zlib::Reader.new out_io
+#Flate::Reader.new out_io
 when "zip"
 Zlib::Reader.new out_io
 when "identity"

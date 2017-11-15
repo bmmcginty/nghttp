@@ -103,64 +103,86 @@ end
 end
 
 
-class Connection
-alias SocketType=TCPSocket|OpenSSL::SSL::Socket::Client|Nil
-@host = ""
-@port = 0
-@tls : Bool|OpenSSL::SSL::Context::Client = false
-@queue : Channel(Connection)
-@rawsocket : TCPSocket? = nil
-@socket : SocketType|Nil = nil
-@fd = -1
-@broken = false
-@fb : Fiber|Nil = nil
+abstract class Transport
+@queue : Channel(Transport)? = nil
+@tls : OpenSSL::SSL::Context::Client? = nil
 @dns_timeout = 2
-@connect_timeout = 5
-@read_timeout = 30
-@ev : Event::Event? = nil
+@connect_timeout : Float64|Int32 = 5
+@read_timeout : Float64|Int32 = 30
+@proxy_host : String
+@proxy_port : Int32
+@proxy_username : String?
+@proxy_password : String?
+@proxy_options : HTTP::Params?
 
-getter! :socket
-property :broken,:fb
+alias SocketType = Socket|OpenSSL::SSL::Socket::Client
+abstract def socket? : SocketType?
+	abstract def rawsocket? : Socket?
+abstract def handle_request(env : HTTPEnv)
+abstract def handle_response(env : HTTPEnv)
 
-def initialize(@host,@port,@tls, @queue)
-end #def
-
-def connect
-#STDOUT.puts "connect"
-#STDOUT.flush
-s=TCPSocket.new @host, @port, @dns_timeout, @connect_timeout
-@rawsocket=s
-s.sync=false
-@fd=s.fd
-s.read_timeout = @read_timeout
-tls=@tls
-if tls != false
-tls = tls == true ? OpenSSL::SSL::Context::Client.new : tls.as(OpenSSL::SSL::Context::Client)
-s=OpenSSL::SSL::Socket::Client.new s, context: tls, hostname: @host, sync_close: true
+def socket
+socket?.not_nil!
 end
-@socket=s
+
+def rawsocket
+rawsocket?.not_nil!
+end
+
+def initialize(queue, host, port,username, password, options)
+@queue=queue
+@proxy_host = host
+@proxy_port = port
+@proxy_username=username
+@proxy_password=password
+@proxy_options = options
+end
+
+def read_timeout=(t)
+if s=rawsocket?
+s.read_timeout=t
+end
+@read_timeout=t
+end
+
+def connect_timeout=(t)
+@connect_timeout=t
+end
+
+def dns_timeout=(t)
+@dns_timeout = t
+end
+
+private def queue
+@queue.not_nil!
 end
 
 def release
-@queue.send self
+STDOUT.puts "release #{self}"
+queue.send self
 sleep 0
 end
 
-def socket?
-@socket
-end
-
-def no_socket?
-@socket == nil
+def close
+socket.close
 end
 
 def closed?
 socket.closed?
 end
 
+def no_socket?
+socket? == nil
+end
+
 def broken?
-t=SelectIO.select({@rawsocket.not_nil!},nil,nil,0.000001)
-#if there's a timeout, we aren't broken
+select_broken?
+end
+
+def select_broken?
+rs=rawsocket
+t=SelectIO.select({rs},nil,nil,0.000001)
+#if there's a ti, we aren't broken
 if t == nil
 return false
 end
@@ -168,44 +190,9 @@ end
 true
 end
 
-def xbroken?
-rs=@socket
-@broken=false
-unless @ev
-@fb=Fiber.current
-@ev=Scheduler.event_base.new_event(@fd,LibEvent2::EventFlags::Read,self) do |s,flags,data|
-cls=data.as(::NGHTTP::Connection)
-#STDOUT.puts flags
-#if we have a timeout, the connection is still good
-cls.broken = flags.includes?(LibEvent2::EventFlags::Timeout) ? false : true
-cls.fb.not_nil!.resume
-end
-end
-@ev.not_nil!.add (0.0001).seconds
-#puts "reschedule"
-@rawsocket.not_nil!.blocking=false
-Scheduler.reschedule
-@rawsocket.not_nil!.blocking=true
-#puts "resumed"
-if @broken
-@broken=false
-return true
-end #if
-false
-end
-
-def close
-socket.close
-end
-
-#delegate :closed?, :read, :write, :flush, :close, :gets, :puts, to: socket
-
-def <<(*a)
-a.each do |i|
-socket << i
-end
-end
-
 end #class
+
 end #module
+
+require "./transports/*"
 

@@ -46,10 +46,12 @@ end
 end
 fh << "\n"
 rio.on_read do |slice,size|
+#puts "writing #{size} to cache"
 fh.write slice[0,size]
 fh.flush
 end
 rio.on_close do
+#STDOUT.puts "close"
 finish_put env,fh
 end
 end
@@ -74,6 +76,7 @@ module NGHTTP
 class Cache
 include Handler
 @cacher : ::Cache
+#@transport : Transport
 @default_cache : Bool
 @wait : Int32|Float64
 
@@ -83,6 +86,7 @@ end
 
 def initialize(cacher = FSCache, @default_cache = false, @wait = 1, **kw)
 @cacher=cacher.new **kw
+#@transport = CacheTransport.new(cacher)
 end
 
 def call(env)
@@ -113,24 +117,14 @@ env.int_config["to_cache"]=true
 sleep rwait.not_nil! if rwait
 return
 end
+#puts "handling #{env.request.uri.to_s} as cached"
 env.int_config["from_cache"]=true
-env.int_config["transport"]=self
-end #def
-
-def handle_transport(env)
-#puts "getting response from cache"
-if env.int_config["from_cache"]?
-io=cacher.get_cache env
-env.state=HTTPEnv::State::Response
-Utils.http_io_to_response env,io
-env.response.body_io=TransparentIO.new io
-else
-raise Exception.new "non-cached response given to cache handler"
-end #if
+env.int_config["transport"]=CacheTransport.new env: env, cacher: cacher
 end #def
 
 def handle_response(env)
-return if env.int_config["to_cache"]? != true
+return unless env.int_config["to_cache"]? == true
+#puts "putting #{env.request.uri.to_s} to cache"
 cacher.put_cache env
 end #def
 

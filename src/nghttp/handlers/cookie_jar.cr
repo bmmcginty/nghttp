@@ -1,7 +1,7 @@
 module NGHTTP
 class Cookiejar
 include Handler
-@cookies = Hash(String,Array(HTTP::Cookie)).new
+@cookies = Hash(String,Array(Cookie)).new
 
 getter cookies
 
@@ -23,12 +23,10 @@ end
 
 def set_headers_from_cookiejar(headers : HTTP::Headers, uri : URI)
 uh=".#{uri.host}"
-t=[] of HTTP::Cookie
+t=[] of Cookie
 cookies.each do |k,v|
 v.each do |c|
-#puts "checking secure"
 next if c.secure && uri.scheme != "https"
-#puts "checking nil domain"
 next if c.domain==nil && c.from_host != uri.host
 if c.domain && ! c.domain.not_nil!.starts_with?(".")
 cd=".#{c.domain}"
@@ -39,11 +37,8 @@ cd=nil
 end
 #uri domain can be longer than cookie domain because cookies propegate downward
 #if cookie has provided a domain but uri hostname isn't equal to or child of cookie domain
-#puts "cd:#{cd}, uh:#{uh}"
 next if cd && ! uh.ends_with?(cd)
-#puts "checking path"
 next if uri.path && ! uri.path.not_nil!.starts_with?(c.path)
-#puts "appending"
 t << c
 end
 end
@@ -65,7 +60,7 @@ def set_cookiejar_from_headers(headers : HTTP::Headers, uri : URI)
 scs=headers.get?("Set-Cookie")
 return unless scs
 scs.each do |sc|
-c=HTTP::Cookie::Parser.parse_set_cookie(sc).not_nil!
+c=Cookie::Parser.parse_set_cookie(sc).not_nil!
 if c.domain==nil
 c.from_host=uri.host
 end
@@ -76,7 +71,7 @@ elsif t
 t.value=c.value
 else
 unless cookies[c.name]?
-cookies[c.name]=Array(HTTP::Cookie).new
+cookies[c.name]=Array(Cookie).new
 end
 cookies[c.name] << c
 end #if

@@ -1,6 +1,6 @@
 require "./src/nghttp"
 puts "running"
-c=NGHTTP::Session.new wait: nil, cache: false
+c=NGHTTP::Session.new wait: nil, cache: false, debug_connect: true
 a=Time.now
 idx=0_u64
 while 1

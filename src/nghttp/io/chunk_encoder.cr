@@ -44,10 +44,7 @@ STDOUT.puts *a
 end
 
 def read(slice : Slice)
-if @eof
-#p "eof"
-return 0
-end
+return 0 if @eof
 if @encoded_remaining <= 0
 transform
 end

@@ -4,12 +4,32 @@ class Session
 @headers = HTTP::Headers.new
 @config = HTTPEnv::ConfigType.new
 @start_handler : Handler? = nil
-@handlers : Array(Handler.class)? = nil
+@handlers = Array(Handler).new
 
+getter :config,:headers
 getter! :start_handler,:connections
 
+def get_handler(name)
+name=name.underscore
+handlers.each do |i|
+if i.name.underscore==name
+return i
+end
+end #each
+end #def
+
 def initialize(**kw)
-setup_handlers
+init kw
+setup_handlers Handlers.default
+end
+
+def initialize(**kw)
+init kw
+h=yield Handlers.default
+setup_handlers h
+end
+
+def init(kw)
 @headers.add "User-Agent","Crystal"
 @headers.add "Accept", "*/*"
 @headers.add "Connection","keep-alive"
@@ -17,41 +37,43 @@ setup_handlers
 end
 
 {% for method in %w(head get post put delete options) %}
-def {{method.id}}(url,**kw)
-begin
-resp=request(**kw, method: {{method}}, url: url)
-yield resp
-ensure
-if resp
-resp.close
-end
-end
+def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, **kw)
+#url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil
+env=request(method: {{method}}, url: url, params: params, body: body, headers: headers, config: config, extra: kw)
+run_env env
 end #def
 
-def {{method.id}}(url, **kw)
-request(**kw, method: {{method}}, url: url)
+def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, **kw)
+env=request(method: {{method}}, url: url, headers: headers, params: params, body: body, config: config, extra: kw)
+resp=run_env env
+#STDOUT.puts "resp:#{resp}"
+#STDOUT.puts "yielding resp for #{env.request.uri.to_s}"
+yield resp
+#STDOUT.puts "yielded resp for #{env.request.uri.to_s}"
+resp.body_io.skip_to_end
+#STDOUT.puts "closing env for #{env.request.uri.to_s}"
+env.close
+resp
 end #def
 
 {% end %}
 
-def request(method = "", url = "", headers : HTTP::Headers? = nil, params : Hash(String,String)|Nil = nil, body : IO|Nil = nil, config : HTTPEnv::ConfigType|Nil = nil, **kw)
+def request(*, method, url, params, body, headers, config, extra)
 env=HTTPEnv.new
 env.session=self
 env.response.env=env
 env.config.merge! @config
-cfg=nil
-kw.each do |k,v|
+if config
+env.config.merge! config
+end
+extra.each do |k,v|
 ks=k.to_s
-if ks.starts_with?("internal_")
-env.int_config[ks]=v
+case ks
+when .starts_with?("internal_")
+env.int_config[ks.split("_",2)[1]]=v
 else
 env.config[ks]=v
 end
-end
-if config
-cfg2=env.config
-env.config=config
-env.config.merge! cfg2
 end
 #env.config.merge! kw
 env.request.method=method
@@ -77,10 +99,9 @@ end
 env.request.uri.query = p
 end
 if body
-env.request.body_io = body
+env.request.body_io = body.is_a?(String) ? IO::Memory.new(body) : body
 end
-run_env env
-env.response
+env
 end
 
 def set_host_header(env)
@@ -96,18 +117,33 @@ end
 env.request.headers["Host"]=hn
 end
 
-def run_env(env)
+def run_env(env : HTTPEnv)
 env.state=HTTPEnv::State::Request
+begin
 start_handler.call env
+rescue e
+env.close true
+raise e
+end
+env.response
 end
 
-def setup_handlers
-custom_handlers=@handlers
-handlers_list=custom_handlers ? custom_handlers : Handlers.default
-other=handlers_list.first.new
+def setup_handlers(handlers_list)
+other=handlers_list.first
+if other.is_a?(Handler)
+other=other
+else
+other=other.new
+end
+other=other.as(Handler)
 @start_handler = other
 handlers_list[1..-1].each do |this_class|
+if this_class.is_a?(Handler)
+this=this_class
+else
 this=this_class.new
+end
+this=this.as(Handler)
 other.next=this
 this.previous=other
 other=this

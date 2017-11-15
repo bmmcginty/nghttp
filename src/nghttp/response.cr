@@ -24,9 +24,31 @@ def body
 if ! @saved_body
 @saved_body = body_io.gets_to_end
 end
-@saved_body
+@saved_body.not_nil!
 end
 
+def error?
+@status_code>=400
 end
+
+def partial?
+@status_code==206
 end
+
+def offset
+range = @headers["Content-Range"]?
+if @status_code == 206 && range
+units,values=range.split(" ",2)
+values=values.split(",")
+values=values.each &.split(/\/|-/)
+if values.size > 1
+return -2
+end
+return values[0][0].to_i
+end
+-1
+end #def
+
+end #class
+end #module
 

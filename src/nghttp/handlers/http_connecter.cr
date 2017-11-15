@@ -6,77 +6,50 @@ def initialize
 end
 
 def call(env)
-t=env.int_config["transport"]?
-if t
-#sta=Time.now
-t.as(Handler).handle_transport env
-#stb=Time.now
-#puts "#{stb-sta}:cache"
-else
 handle_transport env
-end #if transport override
 call_next env
 end #def
 
-#given an env:
-#.establish/reestablish/acquire a connection (from a cache or otherwise)
-#.transmit a request if needed
-#.change state from request to response
-#.receive data from a raw connection
-#.set headers/protocol information
-#.set body_io
+# Send this request out to be filled.
+# If a proxy has been set via the proxies config key, parse that proxy url and attach it to this request.
+# We do this evenf or requests with explicitly set transports, in case those transports faile (cache has deleted file).
+# Todo: possibly remove proxy search when transport has been explicitly selected.
+# If a transport has been configured via int_config, use that transport directly.
+# Otherwise, submit this request to the connection manager to get a transport.
+# Send this request to the transport and process the response.
 def handle_transport(env)
-st=Time.now
-#sta=Time.now
-connection=env.session.connections.get env.request.uri
-#stb=Time.now
-#puts "#{stb-sta}:conn_get"
-env.connection=connection
-#sta=Time.now
-request_to_connection env
-#stb=Time.now
-#puts "#{stb-sta}:request_to_connection"
-env.state=HTTPEnv::State::Response
-#puts "#{connection},#{connection.socket?}"
-#sta=Time.now
-Utils.http_io_to_response env,connection.socket
-#stb=Time.now
-#puts "#{stb-sta}:io_to_response"
-#puts "2:#{connection},#{connection.socket?}"
-env.response.body_io=TransparentIO.new connection.socket, false
-end
-
-private def request_to_connection(env)
-c=env.connection.socket
-#t=c
-c=TransparentIO.new c
-c.on_write do |data|
-#STDOUT.write data
-end
-req=env.request
-q=env.request.uri.query
-#m=IO::Memory.new
-qs = if q == ""
-""
-elsif q == nil
-""
+proxies=env.config["proxies"]?.as(Hash(String,String)|Nil)
+#if no proxies, use SimpleConnection
+noproxy="noproxy://nohost:0"
+pUrl = if proxies == nil
+noproxy
+elsif proxies && proxies.empty?
+noproxy
+#{"http://example.com"=>"socks4a://[username:password@]sockshost:socksport"}
+elsif p=proxies.not_nil!["#{env.request.uri.scheme}://#{env.request.uri.host}"]?
+p
+#{"http"=>"http://[username:password@]proxyhost:proxyport"}
+elsif p=proxies.not_nil!["#{env.request.uri.scheme}"]?
+p
+#no proxy valid for this url, so use a SimpleConnection
 else
-"?#{q}"
+noproxy
 end
-#puts "sync:#{c.sync?}"
-c << "#{req.method.upcase} #{req.uri.path}#{qs} HTTP/#{req.http_version}\r\n"
-req.headers.add "Content-Length","0"
-req.headers.each do |k,vl|
-vl.each do |v|
-c << "#{k}: #{v}\r\n"
+pUri=URI.parse pUrl
+env.int_config["proxy"]=pUri
+realConn = if t = env.int_config["transport"]?
+#todo:if transport is explicitly set, it won't get the values from the resolver, like other prixies
+#todo:perhaps set cache to make a cache:// url that it can read with values, like the other proxies?
+t.as(Transport)
+else
+env.session.connections.get env,pUri
 end
+env.connection=realConn
+env.state=HTTPEnv::State::Request
+realConn.handle_request env
+env.state=HTTPEnv::State::Response
+realConn.handle_response env
 end
-c << "\r\n"
-if req.body_io?
-IO.copy req.body_io,c
-end
-c.flush
-end #def
 
 end #class
 end #module

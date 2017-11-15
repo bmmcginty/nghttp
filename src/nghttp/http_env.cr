@@ -1,6 +1,10 @@
+require "./handler.cr"
+require "./transport.cr"
 module NGHTTP
 class HTTPEnv
-alias ConfigType = Hash(String,String|Int32|Float64|Bool|Nil)
+alias ConfigValuesType = String|Int32|Float64|Bool|Nil|Array(String)|Range(Int32,Int32)|Range(Int64,Int64)|Handler|HTTP::Headers|Transport|URI|Proc(String,String)
+alias ConfigType = Hash(String,ConfigValuesType)
+#Hash(String,String|Int32|Float64|Bool|Nil|Handler)
 enum State
 None
 Request
@@ -10,13 +14,19 @@ end
 
 property state : State = State::None
 property session : Session? = nil
-property connection : Connection? = nil
+property connection : Transport? = nil
 property config = ConfigType.new
-property int_config = Hash(String,String|Int32|Float64|Bool|Handler).new
+property int_config = ConfigType.new
 property request = Request.new
 property response = Response.new
 
-getter! :session,:connection
+getter! :session
+
+getter! :connection
+
+def connection?
+@connection
+end
 
 def request?
 @state==State::Request
@@ -26,12 +36,17 @@ def response?
 @state == State::Response
 end
 
-def close
-state=State::Closed
-response.body_io.close
-connection.release if @connection
-@connection=nil
-@session=nil
+def close(force_close_connection = false)
+@state=State::Closed
+response.body_io.close if response.body_io?
+conn=@connection
+if conn
+if force_close_connection
+conn.close
+end
+conn.release
+conn=@connection=nil
+end
 end
 
 def to_s(io : IO)
