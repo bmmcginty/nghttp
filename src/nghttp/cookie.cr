@@ -1,12 +1,12 @@
-#yanked from http/cookie with additions to format of expires option
-#need to insure this is kept in sync if cookie is updated
+# yanked from http/cookie with additions to format of expires option
+# need to insure this is kept in sync if cookie is updated
 
 module NGHTTP
   # Represents a cookie with all its attributes. Provides convenient
   # access and modification of them.
   class Cookie
-@from_host : String? = nil
-property :from_host
+    @from_host : String? = nil
+    property :from_host
     property name : String
     property value : String
     property path : String
@@ -69,7 +69,7 @@ property :from_host
     # :nodoc:
     module Parser
       module Regex
-        CookieName     = /[^()<>@,;:\\"\/\[\]?={} \t\x00-\x1f\x7f]+/
+        CookieName     = /[^()<>@,;:\\"\[\]?={} \t\x00-\x1f\x7f]+/
         CookieOctet    = /[!#-+\--:<-\[\]-~]/
         CookieValue    = /(?:"#{CookieOctet}*"|#{CookieOctet}*)/
         CookiePair     = /(?<name>#{CookieName})=(?<value>#{CookieValue})/
@@ -83,7 +83,7 @@ property :from_host
         DomainValue    = /(?:#{DomainLabel}(?:\.#{DomainLabel})?|#{DomainIp})+/
         Zone           = /(?:UT|GMT|EST|EDT|CST|CDT|MST|MDT|PST|PDT|[+-]?\d{4})/
         RFC1036Date    = /#{Weekday}, \d{2}-#{Month}-\d{2} #{Time} GMT/
-        RFC1036ModDate    = /#{Wkday}, \d{2}-#{Month}-\d{4} #{Time} GMT/
+        RFC1036ModDate = /#{Wkday}, \d{2}-#{Month}-\d{4} #{Time} GMT/
         RFC1123Date    = /#{Wkday}, \d{1,2} #{Month} \d{2,4} #{Time} #{Zone}/
         ANSICDate      = /#{Wkday} #{Month} (?:\d{2}| \d) #{Time} \d{4}/
         SaneCookieDate = /(?:#{RFC1123Date}|#{RFC1036Date}|#{RFC1036ModDate}|#{ANSICDate})/
@@ -117,7 +117,7 @@ property :from_host
         return unless match
 
         expires = parse_time(match["expires"]?)
-        max_age = match["max_age"]? ? match["max_age"].to_i.seconds : nil
+        max_age = match["max_age"]? ? match["max_age"].to_i64.seconds : nil
 
         Cookie.new(
           match["name"], match["value"],
@@ -133,6 +133,7 @@ property :from_host
 
       private def parse_time(string)
         return unless string
+string=string.gsub(/[^-]-[^-]/) {|i| "#{i[0]} #{i[2]}" }
         HTTP.parse_time(string)
       end
 

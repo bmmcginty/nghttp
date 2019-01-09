@@ -1,21 +1,25 @@
 require "./handlers/*"
 
 module NGHTTP
-class Handlers
-@@default=[
-Redirector,
-Cookiejar,
-BasicAuthorization,
-ContentRange,
-ContentEncoding,
-ContentLength,
-TransferEncoding,
-Cache,
-HTTPConnecter]
-def self.default
-@@default
-end
+  class Handlers
+    @@default = [
+      Redirector,
+      KeepAlive,
+      Cookiejar,
+      BasicAuthorization,
+      ContentRange,
+      ContentEncoding,
+      ContentLength,
+      TransferEncoding,
+      BodyPreparer,
+      Cache,
+      HTTPConnecter,
+      BodySender,
+      Toggler,
+    ]
 
-end #class
-end #module
-
+    def self.default
+      @@default
+    end
+  end # class
+end   # module
