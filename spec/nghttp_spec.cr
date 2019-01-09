@@ -9,10 +9,11 @@ class C
   end
 end
 
+SRV="https://httpbin.org"
 {% for method in %w(get post put delete) %}
 def j{{method.id}}(url, **kw)
 url=url.strip "/"
-u="http://httpbin.apps.bmcginty.us/#{url}"
+u="#{SRV}/#{url}"
 C.c.{{method.id}}(u,**kw) do |resp|
 yield JSON.parse resp.body_io
 end
@@ -20,7 +21,7 @@ end
 
 def r{{method.id}}(url, **kw)
 url=url.strip "/"
-u="http://httpbin.apps.bmcginty.us/#{url}"
+u="#{SRV}/#{url}"
 C.c.{{method.id}}(u,**kw) do |resp|
 yield resp
 end

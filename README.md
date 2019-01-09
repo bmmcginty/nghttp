@@ -1,6 +1,6 @@
 # nghttp
 
-TODO: Write a description here
+A client for HTTP goodness. Inspired by python-requests and daily need.
 
 ## Installation
 
