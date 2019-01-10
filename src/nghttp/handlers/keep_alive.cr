@@ -15,10 +15,10 @@ module NGHTTP
     def handle_response(env)
       if env.response.headers["Connection"]? == "close"
         env.connection.require_reconnect = true
-else
+      else
         env.connection.require_reconnect = false
-      end #if
-    end # def
+      end # if
+    end   # def
 
   end # class
 end   # module

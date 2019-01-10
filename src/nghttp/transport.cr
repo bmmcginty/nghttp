@@ -71,19 +71,19 @@ module NGHTTP
     end
 
     def close(ignore_errors = false)
-begin
-      socket.close if socket? && (!socket.closed?)
-rescue e
-raise e unless ignore_errors
-end
+      begin
+        socket.close if socket? && (!socket.closed?)
+      rescue e
+        raise e unless ignore_errors
+      end
       if rawsocket? && !rawsocket.closed?
-begin
-        rawsocket.close
-rescue e
-raise e unless ignore_errors
-end #begin/rescue
-      end #if rawsocket
-    end #def
+        begin
+          rawsocket.close
+        rescue e
+          raise e unless ignore_errors
+        end # begin/rescue
+      end   # if rawsocket
+    end     # def
 
     def closed?
       socket.closed?

@@ -40,11 +40,11 @@ class FSCache
     end
     @hd.reset
     t = @hd.update(path).hexdigest[0..1]
-t=    "#{@root}/#{t}/#{path}.#{method}"
-if cachekey
-t="#{t}.#{cachekey}"
-end
-t
+    t = "#{@root}/#{t}/#{path}.#{method}"
+    if cachekey
+      t = "#{t}.#{cachekey}"
+    end
+    t
   end
 
   def put_cache(env)
@@ -74,12 +74,12 @@ t
   def finish_put(env, fh)
     name = fh.path
     fh.close
-if env.config["no_save_cache"]? == true
-STDOUT.puts "no save cache"
-File.delete name
-else
-    File.rename name, name[0..name.rindex(".temp").not_nil! - 1]
-end
+    if env.config["no_save_cache"]? == true
+      STDOUT.puts "no save cache"
+      File.delete name
+    else
+      File.rename name, name[0..name.rindex(".temp").not_nil! - 1]
+    end
   end
 
   def have_key?(env)
@@ -124,7 +124,7 @@ module NGHTTP
       if rwait.is_a?(Nil)
         rwait = nil
       else
-        rwait = rwait.as(String | Int32|Float64).to_f
+        rwait = rwait.as(String | Int32 | Float64).to_f
       end
       # if caching is disabled, return
       if env.config["cache"]? != true

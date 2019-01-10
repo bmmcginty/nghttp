@@ -6,7 +6,7 @@ module NGHTTP
     end
 
     def call(env : HTTPEnv)
-      if env.request? && ! env.request.headers["Accept-Encoding"]?
+      if env.request? && !env.request.headers["Accept-Encoding"]?
         env.request.headers["Accept-Encoding"] = "gzip,deflate"
       end
       if env.response? && env.request.method != "HEAD"

@@ -92,15 +92,15 @@ module NGHTTP
         end
       end
       conn = @all[key].receive
-begin
-really_connect(env,conn)
-{conn,nil}
-rescue e
-{conn,e}
-end
-end
+      begin
+        really_connect(env, conn)
+        {conn, nil}
+      rescue e
+        {conn, e}
+      end
+    end
 
-def really_connect(env,conn)
+    def really_connect(env, conn)
       timeout = env.config.fetch("timeout", 10)
       connect_timeout = env.config.fetch("connect_timeout", timeout)
       read_timeout = env.config.fetch("read_timeout", timeout)

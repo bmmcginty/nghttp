@@ -33,23 +33,23 @@ module NGHTTP
 
     def json
       begin
-txt=body_io.gets_to_end
+        txt = body_io.gets_to_end
         t = JSON.parse txt
       rescue e
         raise e
       end
     end
 
-    def xml(encoding = nil)
-      t = body_io.gets_to_end
-if encoding
-io=IO::Memory.new(t.to_slice)
-io.set_encoding(encoding)
-buffer=Bytes.new(io.bytesize*4)
-bytes_read=io.read_utf8(buffer.to_slice)
-t = String.new buffer.to_slice[0,bytes_read]
-end
-      x = XML.parse_html(t)
+    def xml(body = nil, encoding = nil)
+      body = body ? body : body_io.gets_to_end
+      if encoding
+        io = IO::Memory.new(body.to_slice)
+        io.set_encoding(encoding)
+        buffer = Bytes.new(io.bytesize*4)
+        bytes_read = io.read_utf8(buffer.to_slice)
+        body = String.new buffer.to_slice[0, bytes_read]
+      end
+      x = XML.parse_html(body)
       x.make_links_absolute(env.request.url)
       x.as(XML::Node)
     end

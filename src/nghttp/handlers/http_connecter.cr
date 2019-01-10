@@ -43,15 +43,15 @@ module NGHTTP
              end
       pUri = URI.parse pUrl
       env.int_config["proxy"] = pUri
-      realConn,err = if t = env.int_config["transport"]?
-                   # todo:if transport is explicitly set, it won't get the values from the resolver, like other proxies
-                   # todo:perhaps set cache to make a cache:// url that it can read with values, like the other proxies?
-                   {t.as(Transport),nil}
-                 else
-                   env.session.connections.get(env, pUri)
-                 end
+      realConn, err = if t = env.int_config["transport"]?
+                        # todo:if transport is explicitly set, it won't get the values from the resolver, like other proxies
+                        # todo:perhaps set cache to make a cache:// url that it can read with values, like the other proxies?
+                        {t.as(Transport), nil}
+                      else
+                        env.session.connections.get(env, pUri)
+                      end
       env.connection = realConn
-raise err if err
+      raise err if err
       if t = env.config["debugfn"]?
         dbg = t.as(IO)
         s = realConn.socket = TransparentIO.new realConn.socket

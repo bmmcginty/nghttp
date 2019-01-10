@@ -19,15 +19,15 @@ module NGHTTP
                     else
                       "?#{q}"
                     end
-path=req.uri.path.not_nil!
+               path = req.uri.path.not_nil!
                "#{path}#{qs}"
              end
-eurl=eurl.gsub(" ","%20")
-t = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
+      eurl = eurl.gsub(" ", "%20")
+      t = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
       c << t
       req.headers.each do |k, vl|
         vl.each do |v|
-hv = "#{k}: #{v}\r\n"
+          hv = "#{k}: #{v}\r\n"
           c << hv
         end
       end
@@ -44,7 +44,7 @@ hv = "#{k}: #{v}\r\n"
 end
 
     macro te(msg)
-end
+    end
 
     def self.http_io_to_response(env : HTTPEnv, io = nil)
       # ts

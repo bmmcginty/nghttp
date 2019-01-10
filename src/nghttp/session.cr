@@ -52,7 +52,7 @@ module NGHTTP
 
     def setup_and_run(method, url, params, body, headers, config, extra)
       counter = 0
-#      err = nil
+      #      err = nil
       env = nil
       resp = nil
       tries = nil
@@ -70,7 +70,7 @@ module NGHTTP
           err = nil
           break
         rescue e
-#puts e.inspect_with_backtrace
+          # puts e.inspect_with_backtrace
           if env
             env.close(true)
           end
@@ -136,11 +136,11 @@ end #def
       end
       # env.config.merge! kw
       env.request.method = method
-if 1==0
-      if qidx = url.index("?")
-        env.request.uri = URI.parse url[0...qidx]
-        env.request.uri.query = HTTP::Params.parse(url[qidx + 1..-1]).to_s
-end
+      if 1 == 0
+        if qidx = url.index("?")
+          env.request.uri = URI.parse url[0...qidx]
+          env.request.uri.query = HTTP::Params.parse(url[qidx + 1..-1]).to_s
+        end
       else
         env.request.uri = URI.parse url
       end
@@ -165,9 +165,9 @@ end
         env.request.uri.query = p
       end
       if body
-if body.is_a?(String)
-env.request.headers["Content-Length"]=body.bytesize.to_s
-end #body is string?
+        if body.is_a?(String)
+          env.request.headers["Content-Length"] = body.bytesize.to_s
+        end # body is string?
         env.request.body_io = body.is_a?(String) ? IO::Memory.new(body) : body
       end
       env
@@ -191,11 +191,11 @@ end #body is string?
       begin
         start_handler.call env
       rescue e
-#puts e.inspect_with_backtrace
+        # puts e.inspect_with_backtrace
         begin
           env.close true
         rescue e
-#puts e.inspect_with_backtrace
+          # puts e.inspect_with_backtrace
         end # try to close
         raise e
       end # begin

@@ -62,14 +62,14 @@ module NGHTTP
       if env.request?
         next_handler = @next
         name = next_handler.class.to_s
-#STDOUT.puts "req #{self.class.to_s}->#{name}"
+        # STDOUT.puts "req #{self.class.to_s}->#{name}"
         if next_handler
           next_handler.call env
         end
       elsif env.response?
         previous_handler = @previous
         name = previous_handler.class.to_s
-#STDOUT.puts "resp #{self.class.to_s}->#{name}"
+        # STDOUT.puts "resp #{self.class.to_s}->#{name}"
         if previous_handler
           previous_handler.call env
         end

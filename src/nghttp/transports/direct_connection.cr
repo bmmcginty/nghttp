@@ -24,15 +24,15 @@ module NGHTTP
       s.read_timeout = @read_timeout
       tls = @tls
       if tls
-begin
-        s = OpenSSL::SSL::Socket::Client.new s, context: tls, hostname: env.request.uri.host.not_nil!, sync_close: false
-rescue e
-rs=@rawsocket
-if rs = @rawsocket
-rs.close
-end #if rawsocket
-raise e
-end
+        begin
+          s = OpenSSL::SSL::Socket::Client.new s, context: tls, hostname: env.request.uri.host.not_nil!, sync_close: false
+        rescue e
+          rs = @rawsocket
+          if rs = @rawsocket
+            rs.close
+          end # if rawsocket
+          raise e
+        end
       end
       @socket = s
     end

@@ -133,7 +133,7 @@ module NGHTTP
 
       private def parse_time(string)
         return unless string
-string=string.gsub(/[^-]-[^-]/) {|i| "#{i[0]} #{i[2]}" }
+        string = string.gsub(/[^-]-[^-]/) { |i| "#{i[0]} #{i[2]}" }
         HTTP.parse_time(string)
       end
 
