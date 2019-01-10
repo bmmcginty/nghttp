@@ -1,4 +1,4 @@
-require "../../compat"
+require "./nghttp/compat"
 require "socket"
 require "openssl"
 require "gzip"
