@@ -1,5 +1,19 @@
 require "http"
 
+struct Time
+def self.epoch(ms)
+unix ms
+end
+def self.epoch
+unix
+end
+
+def epoch
+to_unix
+end
+
+end
+
 class Tempfile < File
   def unlink
     delete

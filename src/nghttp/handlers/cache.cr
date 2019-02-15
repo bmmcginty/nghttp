@@ -75,7 +75,6 @@ class FSCache
     name = fh.path
     fh.close
     if env.config["no_save_cache"]? == true
-      STDOUT.puts "no save cache"
       File.delete name
     else
       File.rename name, name[0..name.rindex(".temp").not_nil! - 1]

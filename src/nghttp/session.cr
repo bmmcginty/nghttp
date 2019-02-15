@@ -92,9 +92,10 @@ end #def
 
 def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.id.stringify}}, **kw)
 err=nil
+ret = nil
 resp=setup_and_run method: override_method, url: url, params: params, body: body, headers: headers, config: config, extra: kw
 begin
-yield resp
+ret = yield resp
 begin
 unless [201,204].includes?(resp.status_code)
 resp.body_io.skip_to_end
@@ -112,7 +113,7 @@ end
 #puts "err:#{err}"
 resp.env.close (err ? true : false)
 raise err if err
-resp
+ret
 end #def
 
 {% end %}
