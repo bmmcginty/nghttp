@@ -16,10 +16,10 @@ class FSCache
 
   def get_key(env : NGHTTP::HTTPEnv)
     req = env.request
-    get_key(req.method, req.url, env.config["cachekey"]?, req.headers, req.body_io?)
+    get_key(req.method, req.url, env.config["cache_key"]?, req.headers, req.body_io?)
   end
 
-  def get_key(method, url, cachekey, headers, body)
+  def get_key(method, url, cache_key, headers, body)
     bad = /[^a-zA-Z0-9\/\._()-]+/
     path = url.sub(':', "").gsub(bad, '_').gsub(/(^_+|_+$)/, "").gsub(/\/\/+/, "/")
     parts = path.split("/")
@@ -41,8 +41,8 @@ class FSCache
     @hd.reset
     t = @hd.update(path).hexdigest[0..1]
     t = "#{@root}/#{t}/#{path}.#{method}"
-    if cachekey
-      t = "#{t}.#{cachekey}"
+    if cache_key
+      t = "#{t}.#{cache_key}"
     end
     t
   end
@@ -127,13 +127,26 @@ module NGHTTP
       end
       # if caching is disabled, return
       if env.config["cache"]? != true
-        sleep rwait.not_nil! if rwait
+if rwait
+#puts "sleep"
+sleep rwait.not_nil!
+end
         return
       end
       # after this point, caching has been requested.
       exp = env.config["cache_expires"]?
       exp = exp ? exp.as(Time::Span) : nil
       cached = cacher.have_key? env
+#if we have a list of permitted cacheable statuses,
+#and this status code is not included,
+#then don't cache; just return
+okcodes=env.config["cache_statuses"]?
+if cached && okcodes
+tfh=File.open(cacher.get_key(env),"rb")
+sc=tfh.gets.try(&.split(" ")[1]?.try(&.to_i?))
+tfh.close
+return unless (sc && okcodes.not_nil!.as(Array(Int32)).includes?(sc.not_nil!))
+end #not cached or okcodes not set
       # if url not in cache
       cacheStillAlive = if !cached
                           false
@@ -150,7 +163,10 @@ module NGHTTP
       # must [re]save to cache
       unless (cached && cacheStillAlive)
         env.int_config["to_cache"] = true
-        sleep rwait.not_nil! if rwait
+if rwait
+#puts "sleep2"
+        sleep rwait.not_nil!
+end
         return
       end
       # we'll be reading from a non-expired and existing cache
@@ -160,6 +176,10 @@ module NGHTTP
 
     def handle_response(env)
       return unless env.int_config["to_cache"]? == true
+okcodes=env.config["cache_statuses"]?
+if okcodes && !(okcodes.not_nil!.as(Array(Int32)).includes?(env.response.status_code))
+return
+end
       cacher.put_cache env
     end # def
 

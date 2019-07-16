@@ -1,6 +1,7 @@
 module NGHTTP
   class HTTPConnecter
     include Handler
+alias ProxyVendor=(String->String?)
 
     def initialize
     end
@@ -8,11 +9,14 @@ module NGHTTP
     # For requests, ensure a connection exists.
     # For responses, parse the response headers from the server.
     def call(env)
+a=Time.monotonic
       if env.request?
         ensure_transport env
       elsif env.response?
         env.connection.not_nil!.handle_response env
       end
+b=Time.monotonic
+#puts "#{(b-a).total_seconds} connector #{env.request?}"
       call_next env
     end # def
 
@@ -28,7 +32,12 @@ module NGHTTP
       # if no proxies, use SimpleConnection
       noproxy = "noproxy://nohost:0"
       pUrl = if proxies == nil
+ev=env.config["proxy_vendor"]?
+if ev
+ev.as(ProxyVendor).call("#{env.request.uri.scheme}://#{env.request.uri.host}").as(String)
+else
                noproxy
+end
              elsif proxies && proxies.empty?
                noproxy
                # {"http://example.com"=>"socks4a://[username:password@]sockshost:socksport"}

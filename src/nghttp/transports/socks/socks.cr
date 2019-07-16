@@ -128,7 +128,7 @@ module Socks
 
     def recv_connect
       rsv, status, port, host = socks.unpack(">2BHI")
-      status = Status.from_value status
+      status = Status.from_value status.as(UInt8).to_i
       if status != Status::RequestGranted
         raise Exception.new("Error connecting: #{status.to_s}")
       end
@@ -206,7 +206,7 @@ module Socks
 
     def recv_welcome
       version, authtype = socks.unpack ">BB"
-      @authtype = AuthType.from_value authtype
+      @authtype = AuthType.from_value authtype.as(UInt8).to_i
     end
 
     def send_connect(host, port)
@@ -233,11 +233,11 @@ module Socks
 
     def recv_connect
       version, status, reserved, atype = socks.unpack "4B"
-      status = ConnectStatus.from_value status
+      status = ConnectStatus.from_value status.as(UInt8).to_i
       unless status.connection_granted?
         raise Exception.new("Error connecting: #{status.to_s}")
       end
-      atype = AddressType.from_value atype
+      atype = AddressType.from_value atype.as(UInt8).to_i
       host = case atype
              when .ipv4?
                t = socks.unpack(">I")

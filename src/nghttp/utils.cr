@@ -1,12 +1,6 @@
 module NGHTTP
   class Utils
     def self.request_to_http_io(env, full_url = false, io = nil)
-      c = io ? io : env.connection.socket
-      t = c
-      while t.is_a?(TransparentIO)
-        t = t.io
-      end
-      t.as(IO::Buffered).sync = false
       req = env.request
       eurl = if full_url
                req.uri.to_s
@@ -23,8 +17,18 @@ module NGHTTP
                "#{path}#{qs}"
              end
       eurl = eurl.gsub(" ", "%20")
-      t = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
-      c << t
+      req_line = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
+ctr=0
+while 1
+ctr+=1
+      c = io ? io : env.connection.socket
+      t = c
+      while t.is_a?(TransparentIO)
+        t = t.io
+      end
+      t.as(IO::Buffered).sync = false
+begin
+      c << req_line
       req.headers.each do |k, vl|
         vl.each do |v|
           hv = "#{k}: #{v}\r\n"
@@ -32,11 +36,31 @@ module NGHTTP
         end
       end
       c << "\r\n"
-      # c.flush
+      c.flush
       # if req.body_io?
       # IO.copy req.body_io,c
       # end
       # c.flush
+break
+rescue e : Errno
+if ctr==1 && e.errno==Errno::EPIPE
+puts "restarting connection"
+env.connection.close
+env.connection.connect env
+next
+else
+puts "got error #{e} on sending headers ctr #{ctr}"
+puts e.inspect_with_backtrace
+exit 1
+raise e
+end
+rescue e
+puts "non errno error #{e} ctr #{ctr}"
+puts e.inspect_with_backtrace
+exit 1
+raise e
+end
+end #while
     end # def
 
     macro ts

@@ -97,6 +97,7 @@ module NGHTTP
       broken = true
       begin
         rawsocket.wait_readable? 0.1.seconds
+puts "broken"
       rescue e
         broken = false
       end # read?

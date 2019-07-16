@@ -18,7 +18,10 @@ module NGHTTP
       env.connection.handle_request env
       return if env.int_config["from_cache"]? == true
       send_body env
+a=Time.monotonic
       env.connection.socket.flush
+b=Time.monotonic
+#puts "#{(b-a).total_seconds} flush"
     end
 
     def send_body(env)
@@ -31,6 +34,8 @@ module NGHTTP
               files.each do |name, f|
                 handle_field builder, name, f
               end                    # each
+elsif files.is_a?(Array(Int32))
+raise "invalid files hash"
             elsif files.is_a?(Array) # array of tuples
               files.each do |f|
                 handle_field builder, f[0], f[1]

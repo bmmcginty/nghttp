@@ -1,9 +1,39 @@
 module NGHTTP
   class Cookiejar
+alias Cookie = HTTP::Cookie
     include Handler
     @cookies = Hash(String, Array(Cookie)).new
     @custom_cookies = Hash(String, Array(Cookie)).new
     @disabled = false
+
+def to_json(json : JSON::Builder)
+json.object do
+json.field "disabled" do
+disabled.to_json json
+end
+json.field "custom_cookies" do
+custom_cookies.to_json json
+end
+json.field "cookies" do
+cookies.to_json json
+end
+end #object
+end #def
+
+def load_json(parser : JSON::PullParser)
+parser.read_object do |key|
+case key
+when "cookies"
+@cookies=Hash(String,Array(Cookie)).new(parser)
+when "custom_cookies"
+@custom_cookies=Hash(String,Array(Cookie)).new(parser)
+when "disabled"
+@disabled=parser.read_bool
+else
+raise "invalid field #{key}"
+end #each object
+end #case
+end #def
 
     getter cookies, custom_cookies
     property :disabled
@@ -105,9 +135,15 @@ module NGHTTP
       scs = headers.get?("Set-Cookie")
       return unless scs
       scs.each do |sc|
-        c = NGHTTP::Cookie::Parser.parse_set_cookie(sc)
+set_cookiejar_from_set_cookie(sc,uri)
+end #each set-cookie header
+end #def
+
+def set_cookiejar_from_set_cookie(sc,uri)
+        c = Cookie::Parser.parse_set_cookie(sc)
         unless c
-          next
+#puts "failure setting cookie #{sc}"
+          return
         end
         if custom_cookies.has_key?(c.name)
           custom_cookies.delete c.name
@@ -128,7 +164,6 @@ module NGHTTP
           end
           cookies[c.name] << c
         end # if
-      end   # each
     end     # def
 
     def delete_cookie(c)

@@ -64,7 +64,7 @@ module NGHTTP
             elsif protocol == "https" && (proxyType == "http" || proxyType == "https")
               "#{proxyType}://#{proxy_url.user}@#{proxy_url.host}:#{proxy_url.port}/#{protocol}:#{origin}:#{port}/#{tlso}"
             else
-              raise Exception.new("invalid scheme #{proxyType}")
+              raise Exception.new("invalid scheme #{proxyType} protocol #{protocol}")
             end
       if !@all.has_key? key
         cls = case proxyType
@@ -116,7 +116,7 @@ module NGHTTP
       elsif conn.require_reconnect?
         conn.close true
         conn.connect env
-      elsif conn.broken?
+      elsif 1==0 && conn.broken?
         conn.close true
         conn.connect env
       else

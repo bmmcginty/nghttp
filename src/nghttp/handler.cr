@@ -57,26 +57,26 @@ module NGHTTP
     end
 
     def call_next(env : HTTPEnv)
-      st = Time.monotonic
       name = nil
+handler=nil
+status=nil
       if env.request?
-        next_handler = @next
-        name = next_handler.class.to_s
-        # STDOUT.puts "req #{self.class.to_s}->#{name}"
-        if next_handler
-          next_handler.call env
-        end
-      elsif env.response?
-        previous_handler = @previous
-        name = previous_handler.class.to_s
-        # STDOUT.puts "resp #{self.class.to_s}->#{name}"
-        if previous_handler
-          previous_handler.call env
-        end
-      else
+        handler = @next
+status="req"
+elsif env.response?
+handler=@previous
+status="resp"
+else
+status=nil
         raise Exception.new("Env #{env} is neither in request or response state")
-      end # else
+end
+        name = handler.class.to_s
+st=Time.monotonic
+if handler
+handler.call(env)
+end
       et = Time.monotonic
+#puts "#{(et-st).total_seconds}, #{name}, #{status}"
     end # def
 
   end # class

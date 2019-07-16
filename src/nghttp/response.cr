@@ -40,6 +40,16 @@ module NGHTTP
       end
     end
 
+def xml?
+t=nil
+begin
+t=xml
+rescue e
+t=nil
+end
+t
+end
+
     def xml(body = nil, encoding = nil)
       body = body ? body : body_io.gets_to_end
       if encoding
@@ -68,7 +78,7 @@ module NGHTTP
     end
 
     def range_total_size
-      get_range_values[-1].to_i64
+      get_range_values[-1]?.try(&.to_i64)
     end
 
     # no more bytes after this range
