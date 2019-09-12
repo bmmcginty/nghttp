@@ -50,14 +50,14 @@ env.connection.connect env
 next
 else
 puts "got error #{e} on sending headers ctr #{ctr}"
-puts e.inspect_with_backtrace
-exit 1
+#puts e.inspect_with_backtrace
+#exit 1
 raise e
 end
 rescue e
 puts "non errno error #{e} ctr #{ctr}"
 puts e.inspect_with_backtrace
-exit 1
+#exit 1
 raise e
 end
 end #while

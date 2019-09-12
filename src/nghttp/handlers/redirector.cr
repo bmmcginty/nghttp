@@ -41,7 +41,7 @@ module NGHTTP
     def is_redirect?(env)
       return false if env.request.method == "HEAD"
       case env.response.status_code
-      when 301, 302, 307
+      when 301, 302, 303, 307
         true
       else
         false

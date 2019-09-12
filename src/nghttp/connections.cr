@@ -1,5 +1,6 @@
 module NGHTTP
   alias Resolver = (String -> String)
+  alias SSLContextResolver = Proc(OpenSSL::SSL::Context::Client)
 
   class Connections
     # @available = Hash(String,Channel(Connection)).new
@@ -25,7 +26,13 @@ module NGHTTP
       protocol = uri.scheme ? uri.scheme : "http"
       config_tls = env.config["tls"]?
       tls = if protocol == "https"
+if config_tls.is_a?(Proc(OpenSSL::SSL::Context::Client))
+              get_ssl_context config_tls.as(SSLContextResolver)
+elsif config_tls.is_a?(OpenSSL::SSL::Context::Client)
+get_ssl_context config_tls.as(OpenSSL::SSL::Context::Client)
+else
               get_ssl_context config_tls
+end
             else
               nil
             end
@@ -101,7 +108,8 @@ module NGHTTP
     end
 
     def really_connect(env, conn)
-      timeout = env.config.fetch("timeout", 10)
+      timeout = env.config.fetch("timeout",nil)
+timeout = timeout ? timeout : 10
       connect_timeout = env.config.fetch("connect_timeout", timeout)
       read_timeout = env.config.fetch("read_timeout", timeout)
       connect_timeout = get_timeout connect_timeout
@@ -124,6 +132,10 @@ module NGHTTP
       conn
     end # def
 
+private def get_ssl_context(ctxgen : SSLContextResolver)
+ctxgen.call
+end
+
     private def get_ssl_context(ctx : SSLClientContext)
       ctx
     end
@@ -133,7 +145,7 @@ module NGHTTP
     end
 
     private def get_ssl_context(ctx)
-      raise Exception.new("tls must be a client context")
+      raise Exception.new("tls must be a client context, got #{typeof(ctx)}")
     end
   end # class
 end   # module

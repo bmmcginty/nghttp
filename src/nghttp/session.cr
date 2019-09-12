@@ -1,6 +1,9 @@
 require "./handlers/cookie_jar"
 
 module NGHTTP
+private class FatalError < Exception
+end #class
+
   class Session
     @connections = Connections.new
     @headers = HTTP::Headers.new
@@ -69,6 +72,9 @@ module NGHTTP
           resp = run_env env
           err = nil
           break
+rescue e : FatalError
+err=e
+break
         rescue e
           # puts e.inspect_with_backtrace
           if env
@@ -84,13 +90,13 @@ module NGHTTP
     end
 
     {% for method in %w(head get post put delete options) %}
-def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.stringify}}, **kw)
+def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|Hash(String,String)|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.stringify}}, **kw)
 #url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil
 resp=setup_and_run method: override_method, url: url, params: params, body: body, headers: headers, config: config, extra: kw
 resp
 end #def
 
-def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.id.stringify}}, **kw)
+def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|Hash(String,String)|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.id.stringify}}, **kw)
 err=nil
 ret = nil
 resp=setup_and_run method: override_method, url: url, params: params, body: body, headers: headers, config: config, extra: kw
@@ -129,6 +135,8 @@ end #def
       extra.each do |k, v|
         ks = k.to_s
         case ks
+when "data"
+raise FatalError.new("data param depricated; use body")
         when .starts_with?("internal_")
           env.int_config[ks.split("_", 2)[1]] = v
         else
@@ -166,6 +174,9 @@ end #def
         env.request.uri.query = p
       end
       if body
+        if body.is_a?(Hash(String,String))
+body=HTTP::Params.encode(hash: body)
+end
         if body.is_a?(String)
           env.request.headers["Content-Length"] = body.bytesize.to_s
         end # body is string?

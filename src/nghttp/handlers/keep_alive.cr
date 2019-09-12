@@ -17,8 +17,8 @@ rv=env.request.http_version
 rv=rv.to_f
 connheader=env.response.headers["Connection"]?
 connheader = connheader ? connheader : ""
-connheader=connheader.as(String).downcase
-if connheader.starts_with?("close") || rv<1.1
+connheader=connheader.as(String).downcase.split(";")[0]
+if connheader.includes?("close") || rv<1.1
         env.connection.require_reconnect = true
       else
         env.connection.require_reconnect = false

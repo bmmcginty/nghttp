@@ -31,6 +31,14 @@ module NGHTTP
       @saved_body.not_nil!
     end
 
+def json(fc)
+      begin
+        t = JSON.parse fc
+      rescue e
+        raise e
+      end
+end
+
     def json
       begin
         txt = body_io.gets_to_end

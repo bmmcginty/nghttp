@@ -21,7 +21,7 @@ module NGHTTP
         env.int_config["formdata_boundary"] = bnd
         env.request.headers["Content-Type"] = %(multipart/form-data; boundary="#{bnd}")
       elsif env.request.body_io? && !env.request.headers["Content-Type"]?
-        env.request.headers["Content-Type"] = "application/x-www-form-urlencoded"
+        env.request.headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
       end
     end
   end # class
