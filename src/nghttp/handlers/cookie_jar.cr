@@ -1,39 +1,39 @@
 module NGHTTP
   class Cookiejar
-alias Cookie = HTTP::Cookie
+    alias Cookie = HTTP::Cookie
     include Handler
     @cookies = Hash(String, Array(Cookie)).new
     @custom_cookies = Hash(String, Array(Cookie)).new
     @disabled = false
 
-def to_json(json : JSON::Builder)
-json.object do
-json.field "disabled" do
-disabled.to_json json
-end
-json.field "custom_cookies" do
-custom_cookies.to_json json
-end
-json.field "cookies" do
-cookies.to_json json
-end
-end #object
-end #def
+    def to_json(json : JSON::Builder)
+      json.object do
+        json.field "disabled" do
+          disabled.to_json json
+        end
+        json.field "custom_cookies" do
+          custom_cookies.to_json json
+        end
+        json.field "cookies" do
+          cookies.to_json json
+        end
+      end # object
+    end   # def
 
-def load_json(parser : JSON::PullParser)
-parser.read_object do |key|
-case key
-when "cookies"
-@cookies=Hash(String,Array(Cookie)).new(parser)
-when "custom_cookies"
-@custom_cookies=Hash(String,Array(Cookie)).new(parser)
-when "disabled"
-@disabled=parser.read_bool
-else
-raise "invalid field #{key}"
-end #each object
-end #case
-end #def
+    def load_json(parser : JSON::PullParser)
+      parser.read_object do |key|
+        case key
+        when "cookies"
+          @cookies = Hash(String, Array(Cookie)).new(parser)
+        when "custom_cookies"
+          @custom_cookies = Hash(String, Array(Cookie)).new(parser)
+        when "disabled"
+          @disabled = parser.read_bool
+        else
+          raise "invalid field #{key}"
+        end # each object
+      end   # case
+    end     # def
 
     getter cookies, custom_cookies
     property :disabled
@@ -135,36 +135,36 @@ end #def
       scs = headers.get?("Set-Cookie")
       return unless scs
       scs.each do |sc|
-set_cookiejar_from_set_cookie(sc,uri)
-end #each set-cookie header
-end #def
+        set_cookiejar_from_set_cookie(sc, uri)
+      end # each set-cookie header
+    end   # def
 
-def set_cookiejar_from_set_cookie(sc,uri)
-        c = Cookie::Parser.parse_set_cookie(sc)
-        unless c
-#puts "failure setting cookie #{sc}"
-          return
+    def set_cookiejar_from_set_cookie(sc, uri)
+      c = Cookie::Parser.parse_set_cookie(sc)
+      unless c
+        # puts "failure setting cookie #{sc}"
+        return
+      end
+      if custom_cookies.has_key?(c.name)
+        custom_cookies.delete c.name
+      end
+      if c.domain == nil
+        c.from_host = uri.host
+      end
+      t = find_cookie c
+      if t && c.expired?
+        delete_cookie t
+      elsif c.expired?
+        # do nothing; don't add it.
+      elsif t
+        t.value = c.value
+      else
+        unless cookies[c.name]?
+          cookies[c.name] = Array(Cookie).new
         end
-        if custom_cookies.has_key?(c.name)
-          custom_cookies.delete c.name
-        end
-        if c.domain == nil
-          c.from_host = uri.host
-        end
-        t = find_cookie c
-        if t && c.expired?
-          delete_cookie t
-        elsif c.expired?
-          # do nothing; don't add it.
-        elsif t
-          t.value = c.value
-        else
-          unless cookies[c.name]?
-            cookies[c.name] = Array(Cookie).new
-          end
-          cookies[c.name] << c
-        end # if
-    end     # def
+        cookies[c.name] << c
+      end # if
+    end   # def
 
     def delete_cookie(c)
       h = cookies[c.name]?

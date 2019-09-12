@@ -42,10 +42,10 @@ module NGHTTP
     end
 
     def handle_response(env : HTTPEnv)
-a=Time.monotonic
+      a = Time.monotonic
       Utils.http_io_to_response env
-b=Time.monotonic
-#puts "io2resp #{(b-a).total_seconds}"
+      b = Time.monotonic
+      # puts "io2resp #{(b-a).total_seconds}"
     end
   end # class
 end

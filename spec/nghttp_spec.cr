@@ -71,19 +71,19 @@ describe Nghttp do
   end
 
   it "posts data" do
-    a = "testabcd"
+    a = "testabcd=efg"
     m = IO::Memory.new a.to_slice
     jpost "/post", body: m do |j|
-      j["data"].should eq a
+      j["form"]["testabcd"].should eq "efg"
     end
   end
 
   it "posts with data and qs" do
-    a = "testabcd"
+    a = "testabcd=efg"
     m = IO::Memory.new a.to_slice
     jpost "/post?a=bc", body: m do |j|
-      j["data"].should eq a
       j["args"]["a"].should eq "bc"
+      j["form"]["testabcd"].should eq "efg"
     end
   end
 

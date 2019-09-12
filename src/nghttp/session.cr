@@ -1,8 +1,8 @@
 require "./handlers/cookie_jar"
 
 module NGHTTP
-private class FatalError < Exception
-end #class
+  private class FatalError < Exception
+  end # class
 
   class Session
     @connections = Connections.new
@@ -72,9 +72,9 @@ end #class
           resp = run_env env
           err = nil
           break
-rescue e : FatalError
-err=e
-break
+        rescue e : FatalError
+          err = e
+          break
         rescue e
           # puts e.inspect_with_backtrace
           if env
@@ -135,8 +135,8 @@ end #def
       extra.each do |k, v|
         ks = k.to_s
         case ks
-when "data"
-raise FatalError.new("data param depricated; use body")
+        when "data"
+          raise FatalError.new("data param depricated; use body")
         when .starts_with?("internal_")
           env.int_config[ks.split("_", 2)[1]] = v
         else
@@ -174,9 +174,9 @@ raise FatalError.new("data param depricated; use body")
         env.request.uri.query = p
       end
       if body
-        if body.is_a?(Hash(String,String))
-body=HTTP::Params.encode(hash: body)
-end
+        if body.is_a?(Hash(String, String))
+          body = HTTP::Params.encode(hash: body)
+        end
         if body.is_a?(String)
           env.request.headers["Content-Length"] = body.bytesize.to_s
         end # body is string?

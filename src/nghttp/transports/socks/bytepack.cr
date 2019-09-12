@@ -149,19 +149,19 @@ class IO
 end # class
 
 {% if 1 == 0 %}
-require "spec"
-it "handles packing and unpacking" do
-m=IO::Memory.new
-sp="<bBhHiIlL4c5s2z"
-args={1,2,3,4,5,6,7,8,'a','b','c','d',"abcde","fghij","klmno"}
-t=sp+">"+sp[1..-1]
-m.pack(t,*args,*args)
-m.seek 0
-ret = m.unpack(t)
-puts args, ret
-ret.each_with_index do |i,idx|
-#puts idx
-(args+args)[idx].should eq i
-end
-end
+  require "spec"
+  it "handles packing and unpacking" do
+    m = IO::Memory.new
+    sp = "<bBhHiIlL4c5s2z"
+    args = {1, 2, 3, 4, 5, 6, 7, 8, 'a', 'b', 'c', 'd', "abcde", "fghij", "klmno"}
+    t = sp + ">" + sp[1..-1]
+    m.pack(t, *args, *args)
+    m.seek 0
+    ret = m.unpack(t)
+    puts args, ret
+    ret.each_with_index do |i, idx|
+      # puts idx
+      (args + args)[idx].should eq i
+    end
+  end
 {% end %}

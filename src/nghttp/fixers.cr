@@ -1,8 +1,8 @@
 class HTTP::Cookie
-@from_host : String? = ""
-property from_host
+  @from_host : String? = ""
+  property from_host
 
-macro genjson
+  macro genjson
 def self.new(json : JSON::PullParser)
 t_name=nil
 t_value=nil
@@ -19,7 +19,7 @@ t_creation_time=nil
 t_{{name.id}}=nil
 {% end %}
 json.read_object do |key|
-{% for name,idx in %w(from_host name value path expires max_age domain secure http_only extension creation_time) %}
+{% for name, idx in %w(from_host name value path expires max_age domain secure http_only extension creation_time) %}
 {% types = %w(String? String String String Time? Time::Span? String? Bool Bool String? Time) %}
 if key=={{name.id.stringify}}
 t_{{name.id}}={{types[idx].id}}.new(json)
@@ -35,7 +35,7 @@ end
 
 def to_json(json : JSON::Builder)
 json.object do
-{% for name,idx in %w(from_host name value path expires max_age domain secure http_only extension creation_time) %}
+{% for name, idx in %w(from_host name value path expires max_age domain secure http_only extension creation_time) %}
 {% types = %w(String? String String String Time? Time::Span? String? Bool Bool String? Time) %}
 v=@{{name.id}}
 json.field {{name.id.stringify}} do
@@ -47,25 +47,24 @@ end #def
 
 end
 
-genjson
-end #class
+  genjson
+end # class
 
 struct Time::Span
-def to_json(json : JSON::Builder)
-json.array do
-@seconds.to_json json
-@nanoseconds.to_json json
-end
-end
+  def to_json(json : JSON::Builder)
+    json.array do
+      @seconds.to_json json
+      @nanoseconds.to_json json
+    end
+  end
 
-def initialize(json : JSON::PullParser)
-json.read_begin_array
-@seconds=json.read_int
-@nanoseconds=json.read_int.to_i
-json.read_end_array
-end #def
-end #struct
-
+  def initialize(json : JSON::PullParser)
+    json.read_begin_array
+    @seconds = json.read_int
+    @nanoseconds = json.read_int.to_i
+    json.read_end_array
+  end # def
+end   # struct
 
 struct JSON::Any
   def []?(key : Int) : JSON::Any?

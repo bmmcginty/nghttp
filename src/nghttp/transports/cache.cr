@@ -36,7 +36,7 @@ module NGHTTP
     end
 
     def handle_request(env : HTTPEnv)
-nil
+      nil
     end
 
     def handle_response(env : HTTPEnv)

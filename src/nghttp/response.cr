@@ -31,13 +31,13 @@ module NGHTTP
       @saved_body.not_nil!
     end
 
-def json(fc)
+    def json(fc)
       begin
         t = JSON.parse fc
       rescue e
         raise e
       end
-end
+    end
 
     def json
       begin
@@ -48,15 +48,15 @@ end
       end
     end
 
-def xml?
-t=nil
-begin
-t=xml
-rescue e
-t=nil
-end
-t
-end
+    def xml?
+      t = nil
+      begin
+        t = xml
+      rescue e
+        t = nil
+      end
+      t
+    end
 
     def xml(body = nil, encoding = nil)
       body = body ? body : body_io.gets_to_end

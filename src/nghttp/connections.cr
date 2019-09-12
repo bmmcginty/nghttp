@@ -26,13 +26,13 @@ module NGHTTP
       protocol = uri.scheme ? uri.scheme : "http"
       config_tls = env.config["tls"]?
       tls = if protocol == "https"
-if config_tls.is_a?(Proc(OpenSSL::SSL::Context::Client))
-              get_ssl_context config_tls.as(SSLContextResolver)
-elsif config_tls.is_a?(OpenSSL::SSL::Context::Client)
-get_ssl_context config_tls.as(OpenSSL::SSL::Context::Client)
-else
-              get_ssl_context config_tls
-end
+              if config_tls.is_a?(Proc(OpenSSL::SSL::Context::Client))
+                get_ssl_context config_tls.as(SSLContextResolver)
+              elsif config_tls.is_a?(OpenSSL::SSL::Context::Client)
+                get_ssl_context config_tls.as(OpenSSL::SSL::Context::Client)
+              else
+                get_ssl_context config_tls
+              end
             else
               nil
             end
@@ -108,8 +108,8 @@ end
     end
 
     def really_connect(env, conn)
-      timeout = env.config.fetch("timeout",nil)
-timeout = timeout ? timeout : 10
+      timeout = env.config.fetch("timeout", nil)
+      timeout = timeout ? timeout : 10
       connect_timeout = env.config.fetch("connect_timeout", timeout)
       read_timeout = env.config.fetch("read_timeout", timeout)
       connect_timeout = get_timeout connect_timeout
@@ -124,7 +124,7 @@ timeout = timeout ? timeout : 10
       elsif conn.require_reconnect?
         conn.close true
         conn.connect env
-      elsif 1==0 && conn.broken?
+      elsif 1 == 0 && conn.broken?
         conn.close true
         conn.connect env
       else
@@ -132,9 +132,9 @@ timeout = timeout ? timeout : 10
       conn
     end # def
 
-private def get_ssl_context(ctxgen : SSLContextResolver)
-ctxgen.call
-end
+    private def get_ssl_context(ctxgen : SSLContextResolver)
+      ctxgen.call
+    end
 
     private def get_ssl_context(ctx : SSLClientContext)
       ctx
