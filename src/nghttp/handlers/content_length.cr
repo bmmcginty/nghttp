@@ -6,6 +6,8 @@ module NGHTTP
     end
 
     def call(env : HTTPEnv)
+      if env.request? && env.request.method=="POST"
+end
       if env.response?
         if env.request.method == "HEAD"
           env.response.body_io = TransparentIO.new ExactSizeReader.new env.response.body_io, 0_i64

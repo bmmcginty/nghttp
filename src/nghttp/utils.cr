@@ -1,4 +1,13 @@
 module NGHTTP
+class BrokenConnection < Exception
+def to_s
+"broken_connection"
+end
+def to_s(io : IO)
+io << to_s
+end
+end
+
   class Utils
     def self.request_to_http_io(env, full_url = false, io = nil)
       req = env.request
@@ -18,49 +27,29 @@ module NGHTTP
              end
       eurl = eurl.gsub(" ", "%20")
       req_line = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
-      ctr = 0
-      while 1
-        ctr += 1
         c = io ? io : env.connection.socket
         t = c
         while t.is_a?(TransparentIO)
           t = t.io
         end
         t.as(IO::Buffered).sync = false
-        begin
+#        begin
           c << req_line
           req.headers.each do |k, vl|
             vl.each do |v|
               hv = "#{k}: #{v}\r\n"
               c << hv
-            end
-          end
+end #each single header
+            end #each header
           c << "\r\n"
           c.flush
+#rescue e
+#raise BrokenConnection.new
+#          end #begin/end
           # if req.body_io?
           # IO.copy req.body_io,c
           # end
           # c.flush
-          break
-        rescue e : Errno
-          if ctr == 1 && e.errno == Errno::EPIPE
-            puts "restarting connection"
-            env.connection.close
-            env.connection.connect env
-            next
-          else
-            puts "got error #{e} on sending headers ctr #{ctr}"
-            # puts e.inspect_with_backtrace
-            # exit 1
-            raise e
-          end
-        rescue e
-          puts "non errno error #{e} ctr #{ctr}"
-          puts e.inspect_with_backtrace
-          # exit 1
-          raise e
-        end
-      end # while
     end   # def
 
     macro ts
@@ -79,7 +68,11 @@ end
       rh = resp.headers
       te "rsetup"
       ts
+begin
       rl = io.gets.not_nil!.split(" ", 3)
+rescue e : NilAssertionError
+raise BrokenConnection.new
+end
       te "rl1"
       ts
       resp.http_version = rl[0].split("/", 2)[1]

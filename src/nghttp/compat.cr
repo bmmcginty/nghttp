@@ -1,6 +1,10 @@
 require "http"
 
 struct Time
+  def self.epoch(ms : Float64)
+    unix (ms*1000).to_i64
+  end
+
   def self.epoch(ms)
     unix ms
   end

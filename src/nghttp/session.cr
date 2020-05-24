@@ -82,6 +82,10 @@ module NGHTTP
           end
           body.rewind if (body && body.is_a?(IO))
           err = e
+          if e.is_a?(BrokenConnection)
+            err=Exception.new("broken_connection (#{counter}/#{tries})")
+#puts err
+          end
         end
         counter += 1
       end

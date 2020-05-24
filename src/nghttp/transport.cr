@@ -76,13 +76,11 @@ module NGHTTP
       rescue e
         raise e unless ignore_errors
       end
-      if rawsocket? && !rawsocket.closed?
         begin
-          rawsocket.close
+        rawsocket.close if rawsocket? && (!rawsocket.closed?)
         rescue e
           raise e unless ignore_errors
         end # begin/rescue
-      end   # if rawsocket
     end     # def
 
     def closed?

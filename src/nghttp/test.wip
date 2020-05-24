@@ -1,0 +1,20 @@
+require "../nghttp"
+s=NGHTTP::Session.new
+s.config["tries"]=3
+s.config["wait"]=0
+
+def run(s)
+1000.times do |i|
+s.get "https://bmcginty.us/" do |resp|
+#resp.env.close(true) if i%10==0
+puts resp.env.config["tries"]? if resp.env.config["tries"]? != 3
+end
+end
+puts "done"
+end
+
+2.times do
+spawn run(s)
+end
+sleep
+

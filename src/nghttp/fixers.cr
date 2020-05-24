@@ -1,3 +1,27 @@
+module HTTP::Cookie::Parser
+      def parse_set_cookie(header)
+        match = header.match(SetCookieString)
+        return unless match
+
+        expires = if max_age = match["max_age"]?
+                    Time.utc + max_age.to_i64.seconds
+                  else
+                    parse_time(match["expires"]?)
+                  end
+
+        Cookie.new(
+          URI.decode_www_form(match["name"]), URI.decode_www_form(match["value"]),
+          path: match["path"]? || "/",
+          expires: expires,
+          domain: match["domain"]?,
+          secure: match["secure"]? != nil,
+          http_only: match["http_only"]? != nil,
+          samesite: match["samesite"]?.try { |v| SameSite.parse? v },
+          extension: match["extension"]?
+        )
+      end
+end
+
 class HTTP::Cookie
   @from_host : String? = ""
   property from_host

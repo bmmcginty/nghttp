@@ -40,7 +40,7 @@ class NGHTTP::ParallelDownloader
   def dispatch_multiple_requests(env, path, size, count)
     session = env.session
     partCount = count
-    perPart = size/partCount
+    perPart = size//partCount
     perLastPart = size % partCount
     parts = Array(Tuple(Int32, Int32)).new
     start = 0
