@@ -73,7 +73,12 @@ module Socks
     @localaddr = {"", 0}
     getter! :socks
     getter :socks_host, :socks_port
-    delegate read, write, close, closed?, flush, peek, tty?, rewind, to: socks
+
+def write(io : Bytes) : Nil
+socks.write io
+end
+
+    delegate read, close, closed?, flush, peek, tty?, rewind, to: socks
 
     abstract def connect(host : String, port : Int)
 
@@ -255,11 +260,11 @@ module Socks
     end
 
     def remote_address
-      @remoteaddr
+      Socket::IPAddress.new @remoteaddr[0], @remoteaddr[1]
     end
 
     def local_address
-      @localaddr
+      Socket::IPAddress.new @localaddr[0], @localaddr[1]
     end
   end
 end

@@ -10,7 +10,8 @@ module HTTP::Cookie::Parser
                   end
 
         Cookie.new(
-          URI.decode_www_form(match["name"]), URI.decode_www_form(match["value"]),
+          URI.decode_www_form(match["name"]), match["value"],
+#URI.decode_www_form(match["value"]),
           path: match["path"]? || "/",
           expires: expires,
           domain: match["domain"]?,
@@ -151,7 +152,7 @@ end
 
 require "uri"
 
-struct XML::Node
+class XML::Node
   def parents
     t = [] of self
     p = self

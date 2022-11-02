@@ -16,12 +16,12 @@ module NGHTTP
           encoding.split(/, */).reverse.each do |c|
             out_io = case encoding
                      when "gzip"
-                       Gzip::Reader.new out_io, true
+                       Compress::Gzip::Reader.new out_io, true
                      when "deflate"
-                       Zlib::Reader.new out_io, true
+                       Compress::Deflate::Reader.new out_io, true
                        # Flate::Reader.new out_io
-                     when "zip"
-                       Zlib::Reader.new out_io, true
+                     when "zlib"
+                       Compress::Zlib::Reader.new out_io, true
                      when "identity"
                        out_io
                      else

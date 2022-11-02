@@ -68,7 +68,13 @@ module NGHTTP
         body = String.new buffer.to_slice[0, bytes_read]
       end
       x = XML.parse_html(body)
-      x.make_links_absolute(env.request.url)
+nodes = x.xpath_nodes("//base[@href]")
+if !nodes.empty?
+base = nodes[0]["href"]
+else
+base = env.request.url
+end
+      x.make_links_absolute(base)
       x.as(XML::Node)
     end
 

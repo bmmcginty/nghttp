@@ -1,6 +1,6 @@
 module Cache
   abstract def get_key(env : NGHTTP::HTTPEnv)
-  abstract def have_key?(key : String)
+  abstract def have_key?(env : HTTP::Environment)
   abstract def get_cache(env : NGHTTP::HTTPEnv)
   abstract def put_cache(env : NGHTTP::HTTPEnv)
 end
@@ -29,7 +29,8 @@ class FSCache
         right = right ? right : 200
         tmp = part[right..-1]
         @hd.reset
-        tmp = @hd.update(tmp).hexdigest
+        @hd.update(tmp)
+tmp = @hd.final.hexstring
         part = part[0, right - 1] + "_#{tmp}"
       end
       part
@@ -39,7 +40,8 @@ class FSCache
       path += "cache.noname"
     end
     @hd.reset
-    t = @hd.update(path).hexdigest[0..1]
+    @hd.update(path)
+t = @hd.final.hexstring[0..1]
     t = "#{@root}/#{t}/#{path}.#{method}"
     if cache_key
       t = "#{t}.#{cache_key}"
@@ -122,6 +124,8 @@ module NGHTTP
       rwait = env.config.fetch("wait", @wait)
       if rwait.is_a?(Nil)
         rwait = nil
+      elsif rwait.is_a?(Time::Span)
+		rwait=rwait.total_seconds
       else
         rwait = rwait.as(String | Int32 | Float64).to_f
       end
@@ -154,7 +158,7 @@ module NGHTTP
                         elsif !exp
                           true
                           # cache entry is newer than expiration
-                        elsif File.stat(cacher.get_key(env)).mtime > (Time.now - exp)
+                        elsif File.stat(cacher.get_key(env)).mtime > (Time.utc - exp)
                           true
                           # need to recache because of expiration
                         else

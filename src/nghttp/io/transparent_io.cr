@@ -57,9 +57,9 @@ module NGHTTP
 
     def read(slice : Bytes)
       size = @io.read slice
-      if @io.is_a? Gzip::Reader
+#      if @io.is_a? Compress::Gzip::Reader
         # STDOUT.write slice[0,size]
-      end
+#      end
       # STDOUT.puts "read #{@io} sliceSize #{slice.size} ret #{size}"
       if @on_read
         @on_read.not_nil!.call(slice, size)
@@ -67,7 +67,7 @@ module NGHTTP
       size
     end
 
-    def write(slice : Bytes)
+    def write(slice : Bytes) : Nil
       @io.write slice
       if @on_write
         @on_write.not_nil!.call(slice)

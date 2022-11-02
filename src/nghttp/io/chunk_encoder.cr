@@ -69,7 +69,7 @@ end
       amount_to_write
     end
 
-    def write(s : Slice)
+    def write(slice : Slice) : Nil
       raise Errors::Unwriteable.new(self.class.name)
     end
 

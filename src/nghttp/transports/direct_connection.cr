@@ -8,11 +8,11 @@ module NGHTTP
       @socket = s
     end
 
-    def socket?
+    def socket?() : IO?
       @socket
     end
 
-    def rawsocket?
+    def rawsocket? : Socket?
       @rawsocket
     end
 

@@ -13,7 +13,7 @@ module NGHTTP
     def cached_redirect?(url : String)
       if v = cache[url]?
         expires, dest = v[0], v[1]
-        if expires > Time.now
+        if expires > Time.utc
           return dest
         else # if not expired
           cache.delete url
@@ -59,14 +59,17 @@ module NGHTTP
         env.response.close
         respuri = env.response.headers["location"]
         nurl = URI.parse(respuri).normalize(env.request.uri).to_s
-        cache[env.request.url] = {Time.now + 5.minutes, nurl}
+        cache[env.request.url] = {Time.utc + 5.minutes, nurl}
         if redirect_count + 1 > maximum_redirects
           original_url = env.int_config.fetch("original_url") { |key| env.request.uri.to_s }
           raise TooManyRedirectionsError.new env, "Too many redirects (#{redirect_count}) for #{original_url}"
         end
         original_url = env.int_config.fetch("original_url", env.request.uri.to_s)
+puts nurl
         newreq = env.session.request method: "GET", url: nurl, params: nil, body: nil, headers: env.request.custom_headers, config: env.config, extra: {internal_redirect_count: redirect_count + 1, internal_original_url: original_url}
+puts "got request"
         newresp = env.session.run_env newreq
+puts "got newresp"
         newenv = newresp.env
         env.request = newenv.request
         env.response = newenv.response

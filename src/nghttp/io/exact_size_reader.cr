@@ -6,10 +6,10 @@ class ExactSizeReader < IO
   def initialize(@io, @total)
   end
 
-  def read(s : Slice)
+  def read(slice : Slice)
     return 0_i64 if @pos >= @total
     # STDOUT.puts "reading from #{@pos}"
-    t = @io.read s
+    t = @io.read slice
     # STDOUT.puts "read #{t} bytes"
     @pos += t
     # STDOUT.puts "@pos now #{@pos}"
@@ -20,7 +20,7 @@ class ExactSizeReader < IO
     @io.close
   end
 
-  def write(s : Slice)
+  def write(slice : Slice) : Nil
     raise Exception.new("not writeable")
   end
 

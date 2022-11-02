@@ -108,7 +108,8 @@ module NGHTTP
           # uri domain can be longer than cookie domain because cookies propegate downward
           # if cookie has provided a domain but uri hostname isn't equal to or child of cookie domain
           next if cd && !uh.ends_with?(cd)
-          next if uri.path && !uri.path.not_nil!.starts_with?(c.path)
+# todo: check c.path
+          next if uri.path && !uri.path.not_nil!.starts_with?(c.path.not_nil!)
           t << c
         end
       end
@@ -121,7 +122,7 @@ module NGHTTP
       ch = headers["Cookie"]?
       ch = "" unless ch
       t.each_with_index do |i, idx|
-        ch += "#{i.name}=#{URI.escape(i.value)}"
+        ch += "#{i.name}=#{i.value}"
         ch += "; " if idx < t.size - 1
       end
       headers["Cookie"] = ch

@@ -9,7 +9,7 @@ module NGHTTP
     def initialize(@io)
     end
 
-    def write(slice : Bytes)
+    def write(slice : Bytes) : Nil
       raise Errors::Unwriteable.new(self.class.name)
     end
 
@@ -40,6 +40,7 @@ module NGHTTP
           @need_chunk = false
         end
         size = Math.min(@chunk_remaining, slice.size - total)
+# STDERR.puts "chunk_remaining:#{@chunk_remaining}, slice.size:#{slice.size}, total #{total}"
         # STDERR.puts "size:#{size}"
         if size > 0
           # STDERR.puts "reading:#{total},#{size}"
