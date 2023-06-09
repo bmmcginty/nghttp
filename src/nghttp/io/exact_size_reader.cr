@@ -7,12 +7,9 @@ class ExactSizeReader < IO
   end
 
   def read(slice : Slice)
-    return 0_i64 if @pos >= @total
-    # STDOUT.puts "reading from #{@pos}"
+    return 0 if @pos >= @total
     t = @io.read slice
-    # STDOUT.puts "read #{t} bytes"
     @pos += t
-    # STDOUT.puts "@pos now #{@pos}"
     t
   end
 
