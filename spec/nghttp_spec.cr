@@ -2,14 +2,15 @@ require "./spec_helper"
 require "json"
 
 class C
-  @@c = NGHTTP::Session.new maximum_redirects: 3, wait: nil, debug: false
+  @@c = NGHTTP::Session.new max_redirects: 3, wait: nil, debug: false
 
   def self.c
     @@c
   end
 end
 
-SRV="https://httpbin.org"
+#SRV="https://httpbin.org"
+SRV="http://127.0.0.1:8100"
 {% for method in %w(get post put delete) %}
 def j{{method.id}}(url, **kw)
 url=url.strip "/"
@@ -129,12 +130,12 @@ describe Nghttp do
   end
 
   it "handles only permitted number of redirects before throwing error" do
-    rget "/redirect/3", maximum_redirects: 3 do |resp|
+    rget "/redirect/3", max_redirects: 3 do |resp|
       resp.env.request.uri.path.should eq "/get"
       resp.body_io.skip_to_end
     end
     expect_raises(NGHTTP::TooManyRedirectionsError) do
-      rget "/redirect/2", maximum_redirects: 1 do |resp|
+      rget "/redirect/2", max_redirects: 1 do |resp|
         resp.env.request.uri.path.should eq "/get"
         resp.body_io.skip_to_end
       end
@@ -143,7 +144,7 @@ describe Nghttp do
 
   it "raises when no redirects are allowed" do
     expect_raises(NGHTTP::TooManyRedirectionsError) do
-      rget "/redirect/1", maximum_redirects: 0 do |resp|
+      rget "/redirect/1", max_redirects: 0 do |resp|
         resp.env.request.uri.path.should eq "/get"
         resp.body_io.skip_to_end
       end
