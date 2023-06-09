@@ -1,4 +1,6 @@
 require "./handlers/cookie_jar"
+require "./http_error"
+
 
 module NGHTTP
   private class FatalError < Exception
@@ -16,10 +18,6 @@ module NGHTTP
 
     def cookiejar
       get_handler("cookiejar").as(NGHTTP::Cookiejar)
-    end
-
-    def redirector
-      get_handler("redirector").as(NGHTTP::Redirector)
     end
 
     def get_handler(name)
@@ -59,11 +57,6 @@ module NGHTTP
       env = nil
       resp = nil
       tries = nil
-      url = if cr = redirector.cached_redirect? url
-              cr
-            else
-              url
-            end
       while 1
         break if (tries && counter >= tries.not_nil!)
         begin
@@ -91,21 +84,65 @@ module NGHTTP
       env.not_nil!.response
     end
 
+def is_redirect(resp)
+(300..308).includes?(resp.status_code)
+end
+
+def redirect_method_url_body(resp)
+method="GET"
+sc=resp.status_code
+if sc==307
+method=resp.env.request.method
+new_body=nil
+if resp.env.request.body_io
+new_body=resp.env.request.body_io
+if new_body.is_a?(IO)
+new_body.seek 0
+end
+end
+end
+        respurl = resp.env.response.headers["location"]
+        respuri=URI.parse(respurl)
+        orig_uri=resp.env.request.uri
+nurl = orig_uri.resolve(respuri).to_s
+{method,nurl,new_body}
+end
+
     {% for method in %w(head get post put delete options) %}
-def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|Hash(String,String)|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.stringify}}, **kw)
+def x{{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|Hash(String,String)|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.id.stringify}}, **kw)
 #url : String = "", params : Hash(String,String)? = nil, body : IO|String|Nil = nil, headers : HTTP::Headers? = nil
 resp=setup_and_run method: override_method, url: url, params: params, body: body, headers: headers, config: config, extra: kw
 resp
 end #def
 
 def {{method.id}}(url : String = "", params : Hash(String,String)? = nil, body : IO|Hash(String,String)|String|Nil = nil, headers : HTTP::Headers? = nil, config : HTTPEnv::ConfigType? = nil, override_method = {{method.id.stringify}}, **kw)
+resp=nil
 err=nil
 ret = nil
+redirect_limit=3
+redirects=0
+while 1
 resp=setup_and_run method: override_method, url: url, params: params, body: body, headers: headers, config: config, extra: kw
+redirect_limit=resp.env.config.fetch("max_redirects", redirect_limit).as(Int32)
+if is_redirect(resp)
+redirects+=1
+new_method, new_url,new_body=redirect_method_url_body(resp)
+resp.body_io.skip_to_end
+if redirects>redirect_limit
+resp.env.close(true)
+raise TooManyRedirectionsError.new(resp.env, "too many redirects #{redirects}/#{redirect_limit}")
+else
+resp.env.close(false)
+end
+url=new_url
+override_method=new_method
+body=new_body
+next
+end
 begin
 ret = yield resp
 begin
-unless [201,204].includes?(resp.status_code)
+if ! [201,204].includes?(resp.status_code)
 resp.body_io.skip_to_end
 end
 rescue e
@@ -117,6 +154,8 @@ err=e
 #resp.env.close
 end
 resp.env.close (err ? true : false)
+break
+end
 raise err if err
 ret
 end #def
@@ -159,6 +198,7 @@ end #def
         env.request.headers.merge!(headers)
       end
       if params
+        env.request.params=params
         enc_p = HTTP::Params.encode params
         p = env.request.uri.query
         p = p ? p : ""
