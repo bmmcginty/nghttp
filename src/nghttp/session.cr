@@ -94,7 +94,7 @@ sc=resp.status_code
 if sc==307
 method=resp.env.request.method
 new_body=nil
-if resp.env.request.body_io
+if resp.env.request.body_io?
 new_body=resp.env.request.body_io
 if new_body.is_a?(IO)
 new_body.seek 0

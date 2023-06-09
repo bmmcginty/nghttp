@@ -177,7 +177,9 @@ module NGHTTP
     end # def
 
     def handle_response(env)
-      return unless env.int_config["to_cache"]? == true
+      if env.int_config["to_cache"]? != true
+return
+end
       okcodes = env.config["cache_statuses"]?
       if okcodes && !(okcodes.not_nil!.as(Array(Int32)).includes?(env.response.status_code))
         return

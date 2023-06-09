@@ -10,6 +10,7 @@ module NGHTTP
 
     property :body_io, :method, :uri, :headers, :http_version, :custom_headers, :params
     getter! :body_io
+getter? :body_io
 
     def method=(s : String)
       @method = s.upcase
