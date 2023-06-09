@@ -3,11 +3,12 @@ module NGHTTP
     @headers = HTTP::Headers.new
     @custom_headers : HTTP::Headers? = nil
     @uri = URI.parse ""
+    @params = Hash(String,String).new
     @method = "GET"
     @http_version = "1.1"
     @body_io : IO? = nil
 
-    property :body_io, :method, :uri, :headers, :http_version, :custom_headers
+    property :body_io, :method, :uri, :headers, :http_version, :custom_headers, :params
     getter! :body_io
 
     def method=(s : String)
