@@ -2,6 +2,7 @@ module NGHTTP
   class HTTPError < Exception
     @env : HTTPEnv
     @message : String? = nil
+getter env
 
     def initialize(@env, @message)
     end
@@ -19,5 +20,11 @@ module NGHTTP
     def inspect
       "#{@env.request.uri.to_s}:#{@message}"
     end
+
+  end #class
+
+
+  class TooManyRedirectionsError < HTTPError
   end
-end
+
+end #module
