@@ -57,13 +57,13 @@ t = @hd.final.hexstring[0..1]
     rio = resp.body_io
     fh << "HTTP/#{resp.http_version} #{resp.status_code}"
     fh << " #{resp.status_message}" if resp.status_message
-    fh << "\n"
+    fh << "\r\n"
     resp.headers.each do |k, vl|
       vl.each do |v|
-        fh << "#{k}: #{v}\n"
+        fh << "#{k}: #{v}\r\n"
       end
     end
-    fh << "\n"
+    fh << "\r\n"
     rio.on_read do |slice, size|
       fh.write slice[0, size]
       fh.flush
