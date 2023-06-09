@@ -18,9 +18,6 @@ module NGHTTP
                      when "gzip"
                        Compress::Gzip::Reader.new out_io, true
                      when "deflate"
-                       Compress::Deflate::Reader.new out_io, true
-                       # Flate::Reader.new out_io
-                     when "zlib"
                        Compress::Zlib::Reader.new out_io, true
                      when "identity"
                        out_io
