@@ -45,7 +45,6 @@ module NGHTTP
       a = Time.monotonic
       Utils.http_io_to_response env
       b = Time.monotonic
-      # puts "io2resp #{(b-a).total_seconds}"
     end
   end # class
 end

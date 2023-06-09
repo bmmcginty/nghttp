@@ -60,7 +60,6 @@ module NGHTTP
 #      if @io.is_a? Compress::Gzip::Reader
         # STDOUT.write slice[0,size]
 #      end
-      # STDOUT.puts "read #{@io} sliceSize #{slice.size} ret #{size}"
       if @on_read
         @on_read.not_nil!.call(slice, size)
       end

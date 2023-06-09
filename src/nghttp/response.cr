@@ -98,7 +98,6 @@ end
     # no more bytes after this range
     def range_last?
       v = get_range_values
-      # puts v
       v.size > 2 ? (v[1].to_i64 + 1_i64) == v[2] : false
     end
 

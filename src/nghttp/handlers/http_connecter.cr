@@ -16,7 +16,6 @@ a=Time.monotonic
         env.connection.not_nil!.handle_response env
       end
 b=Time.monotonic
-#puts "#{(b-a).total_seconds} connector #{env.request?}"
       call_next env
     end # def
 

@@ -158,9 +158,7 @@ end # class
     m.pack(t, *args, *args)
     m.seek 0
     ret = m.unpack(t)
-    puts args, ret
     ret.each_with_index do |i, idx|
-      # puts idx
       (args + args)[idx].should eq i
     end
   end

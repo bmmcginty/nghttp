@@ -21,7 +21,6 @@ module NGHTTP
       a = Time.monotonic
       env.connection.socket.flush
       b = Time.monotonic
-      # puts "#{(b-a).total_seconds} flush"
     end
 
     def send_body(env)

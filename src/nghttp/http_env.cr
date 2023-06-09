@@ -40,7 +40,6 @@ module NGHTTP
     end
 
     def close(force_close_connection = false)
-      # puts "close force=#{force_close_connection}"
       config["no_save_cache"] = true if force_close_connection
       @state = State::Closed
       err = nil

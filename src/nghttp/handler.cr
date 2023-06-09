@@ -76,7 +76,6 @@ module NGHTTP
         handler.call(env)
       end
       et = Time.monotonic
-      # puts "#{(et-st).total_seconds}, #{name}, #{status}"
     end # def
 
   end # class

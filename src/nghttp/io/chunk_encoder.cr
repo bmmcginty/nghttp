@@ -50,10 +50,6 @@ end
     def initialize(@io)
     end
 
-    def p(*a)
-      STDOUT.puts *a
-    end
-
     def read(slice : Slice)
       return 0 if @eof
       if @encoded_remaining <= 0

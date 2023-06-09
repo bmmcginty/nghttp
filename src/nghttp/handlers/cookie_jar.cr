@@ -143,7 +143,6 @@ module NGHTTP
     def set_cookiejar_from_set_cookie(sc, uri)
       c = Cookie::Parser.parse_set_cookie(sc)
       unless c
-        # puts "failure setting cookie #{sc}"
         return
       end
       if custom_cookies.has_key?(c.name)

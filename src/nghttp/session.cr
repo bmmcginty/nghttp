@@ -76,7 +76,6 @@ module NGHTTP
           err = e
           break
         rescue e
-          # puts e.inspect_with_backtrace
           if env
             env.close(true)
           end
@@ -84,7 +83,6 @@ module NGHTTP
           err = e
           if e.is_a?(BrokenConnection)
             err=Exception.new("broken_connection (#{counter}/#{tries})")
-#puts err
           end
         end
         counter += 1
@@ -111,16 +109,13 @@ unless [201,204].includes?(resp.status_code)
 resp.body_io.skip_to_end
 end
 rescue e
-#puts e.inspect_with_backtrace
 err=e
 end
 rescue e #error
-#puts e.inspect_with_backtrace
 err=e
 #ensure
 #resp.env.close
 end
-#puts "err:#{err}"
 resp.env.close (err ? true : false)
 raise err if err
 ret
@@ -207,11 +202,9 @@ end #def
       begin
         start_handler.call env
       rescue e
-        # puts e.inspect_with_backtrace
         begin
           env.close true
         rescue e
-          # puts e.inspect_with_backtrace
         end # try to close
         raise e
       end # begin

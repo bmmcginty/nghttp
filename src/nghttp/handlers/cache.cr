@@ -132,7 +132,6 @@ module NGHTTP
       # if caching is disabled, return
       if env.config["cache"]? != true
         if rwait
-          # puts "sleep"
           sleep rwait.not_nil!
         end
         return
@@ -168,7 +167,6 @@ module NGHTTP
       unless (cached && cacheStillAlive)
         env.int_config["to_cache"] = true
         if rwait
-          # puts "sleep2"
           sleep rwait.not_nil!
         end
         return

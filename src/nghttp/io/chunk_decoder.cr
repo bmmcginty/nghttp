@@ -31,25 +31,17 @@ module NGHTTP
       return 0 if @eof
       total = 0
       while 1
-        # STDERR.puts "total:#{total},slice.size:#{slice.size},need_chunk:#{@need_chunk}"
         break if total >= slice.size
         if @need_chunk
-          # STDERR.puts "getting chunk size"
           @chunk_size = @chunk_remaining = get_chunk_size
-          # STDERR.puts @chunk_size
           @need_chunk = false
         end
         size = Math.min(@chunk_remaining, slice.size - total)
-# STDERR.puts "chunk_remaining:#{@chunk_remaining}, slice.size:#{slice.size}, total #{total}"
-        # STDERR.puts "size:#{size}"
         if size > 0
-          # STDERR.puts "reading:#{total},#{size}"
           size = @io.read(slice[total, size])
-          # STDERR.puts "actually read:#{size}"
         end
         total += size
         @chunk_remaining -= size
-        # STDERR.puts "chunk_remaining:#{@chunk_remaining}"
         if @chunk_remaining == 0
           2.times do
             @io.read_byte
@@ -61,7 +53,6 @@ module NGHTTP
           break
         end
       end
-      # STDERR.puts "read #{total}"
       total
     end # def
 

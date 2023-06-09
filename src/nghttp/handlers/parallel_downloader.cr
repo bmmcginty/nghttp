@@ -128,7 +128,6 @@ class NGHTTP::ParallelDownloader
     fn = sprintf "%s.%d-%d.p%03d", path, start, size, index
     if File.exists?(fn) && File.size(fn) == size
       t = {index, 0, fn}
-      puts t
       queue.send t
       return
     end
@@ -137,13 +136,11 @@ class NGHTTP::ParallelDownloader
     begin
       download2(env: env, fh: fh, index: index, size: size, start: start)
       t = {index, 0, fn}
-      puts t
       queue.send t
     rescue e
       error = true
       es = e.inspect_with_backtrace
       t = {index, 1, es}
-      puts t
       queue.send t
     end
     fh.close
