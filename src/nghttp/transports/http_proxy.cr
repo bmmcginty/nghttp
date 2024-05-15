@@ -1,27 +1,15 @@
 module NGHTTP
   class HttpProxy < DirectConnection
-    HTTPS_PROXY = false
+    @https_proxy = false
 
     alias SocketType = TCPSocket | OpenSSL::SSL::Socket::Client | TransparentIO
     @rawsocket : TCPSocket? = nil
     @socket : SocketType? = nil
 
-    def socket=(s)
-      @socket = s
-    end
-
-    def socket?() : IO?
-      @socket
-    end
-
-    def rawsocket? : Socket?
-      @rawsocket
-    end
-
     def connect(env : HTTPEnv)
       s = TCPSocket.new(@proxy_host, @proxy_port)
       @rawsocket = s
-      if HTTPS_PROXY
+      if @https_proxy
         ctx = OpenSSL::SSL::Context::Client.new
         # todo: fix this to take false/0 or change to get rid of string-passing config mess altogether
         if @proxy_options && @proxy_options.not_nil!["verify"]? == "false"
@@ -65,10 +53,11 @@ module NGHTTP
                      false
                    end
       Utils.request_to_http_io env, useLongUrl
+if env.request.body_io?
+          IO.copy(env.request.body_io, env.connection.socket)
+env.connection.socket.flush
+end
     end
 
-    def handle_response(env)
-      Utils.http_io_to_response env
-    end
   end # class
 end   # module

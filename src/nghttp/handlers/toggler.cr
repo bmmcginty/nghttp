@@ -1,5 +1,4 @@
-module NGHTTP
-  class Toggler
+  class NGHTTP::Toggler
     include Handler
 
     def initialize
@@ -7,9 +6,13 @@ module NGHTTP
 
     def call(env : HTTPEnv)
       if env.request?
-        env.state = HTTPEnv::State::Response
-      end
+handle_request env
+      end # if
       call_next env
-    end
-  end
-end
+  end # def
+
+def handle_request(env)
+        env.state = HTTPEnv::State::Response
+end # def
+
+end # class

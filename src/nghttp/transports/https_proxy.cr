@@ -1,5 +1,5 @@
 module NGHTTP
   class HttpsProxy < HttpProxy
-    HTTPS_PROXY = true
+    @https_proxy = true
   end
 end

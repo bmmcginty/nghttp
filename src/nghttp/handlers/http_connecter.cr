@@ -1,5 +1,10 @@
-module NGHTTP
-  class HTTPConnecter
+class NGHTTP::Config
+hk debug_connect : Bool
+hk debugfn : String
+hk tls : OpenSSL::SSL::Context::Client
+end
+
+class NGHTTP::HTTPConnecter
     include Handler
 alias ProxyVendor=(String->String?)
 
@@ -11,9 +16,10 @@ alias ProxyVendor=(String->String?)
     def call(env)
 a=Time.monotonic
       if env.request?
+# we do the actual sending for both the headers and body in BodySender
         ensure_transport env
       elsif env.response?
-        env.connection.not_nil!.handle_response env
+        env.connection.handle_response env
       end
 b=Time.monotonic
       call_next env
@@ -51,18 +57,22 @@ end
              end
       pUri = URI.parse pUrl
       env.int_config["proxy"] = pUri
-      realConn, err = if t = env.int_config["transport"]?
+      real_conn, err = if t = env.int_config["transport"]?
                         # todo:if transport is explicitly set, it won't get the values from the resolver, like other proxies
                         # todo:perhaps set cache to make a cache:// url that it can read with values, like the other proxies?
                         {t.as(Transport), nil}
                       else
-                        env.session.connections.get(env, pUri)
+                        env.session.connection_manager.get(env, pUri)
                       end
-      env.connection = realConn
+      env.connection = real_conn
       raise err if err
+setup_socket_debug env, real_conn
+end
+
+def setup_socket_debug(env, real_conn)
       if t = env.config["debugfn"]?
         dbg = t.as(IO)
-        s = realConn.socket = TransparentIO.new realConn.socket
+        s = real_conn.socket = TransparentIO.new real_conn.socket
         s.on_read do |slice, size|
           dbg << "r:"
           dbg.write slice[0, size]
@@ -77,6 +87,5 @@ end
           dbg.close
         end
       end # if debugfn
-    end
+    end # def
   end # class
-end   # module

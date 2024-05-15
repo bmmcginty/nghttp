@@ -3,7 +3,7 @@ require "./handlers/*"
 module NGHTTP
   class Handlers
     @@default = [
-#      Redirector,
+      Redirector,
       KeepAlive,
       Cookiejar,
       BasicAuthorization,

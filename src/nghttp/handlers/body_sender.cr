@@ -1,5 +1,4 @@
-module NGHTTP
-  class BodySender
+class NGHTTP::BodySender
     include Handler
     @before_me = ["BodyPreparer"]
 
@@ -14,20 +13,10 @@ module NGHTTP
     end
 
     def handle_request(env)
-      # should only handle headers?
       env.connection.handle_request env
-      return if env.int_config["from_cache"]? == true
-      send_body env
-      a = Time.monotonic
-      env.connection.socket.flush
-      b = Time.monotonic
     end
 
-    def send_body(env)
-      if env.request.method.match /GET|PUT|POST|DELETE/i
-        if bio = env.request.body_io?
-          IO.copy(bio, env.connection.socket)
-        elsif files = env.config["files"]?
+def send_files
           HTTP::FormData.build io: env.connection.socket, boundary: env.int_config["formdata_boundary"].as(String) do |builder|
             if files.is_a?(Hash)
               files.each do |name, f|
@@ -41,8 +30,6 @@ module NGHTTP
               end # each
             end   # if hash
           end     # builder
-        end       # if files
-      end         # if match
     end           # def
 
     def handle_field(builder, field_name, field)
@@ -76,4 +63,3 @@ module NGHTTP
     end   # def
 
   end # class
-end   # module

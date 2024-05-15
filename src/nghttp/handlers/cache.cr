@@ -1,3 +1,15 @@
+class NGHTTP::Config
+hk cache : Bool
+hk cache_expires : Time::Span
+hk cache_key : String
+hk cache_statuses : Array(Int32)
+end
+
+class NGHTTP::InternalConfig
+hk no_save_cache : Bool
+hk from_cache : Bool
+end
+
 module Cache
   abstract def get_key(env : NGHTTP::HTTPEnv)
   abstract def have_key?(env : HTTP::Environment)
@@ -76,7 +88,7 @@ t = @hd.final.hexstring[0..1]
   def finish_put(env, fh)
     name = fh.path
     fh.close
-    if env.config["no_save_cache"]? == true
+    if env.int_config["no_save_cache"]? == true
       File.delete name
     else
       File.rename name, name[0..name.rindex(".temp").not_nil! - 1]
@@ -92,8 +104,7 @@ t = @hd.final.hexstring[0..1]
   end
 end # class
 
-module NGHTTP
-  class Cache
+class NGHTTP::Cache
     include Handler
     @cacher : ::Cache
     # @transport : Transport
@@ -188,4 +199,3 @@ end
     end # def
 
   end # class
-end   # module

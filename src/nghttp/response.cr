@@ -1,5 +1,4 @@
-module NGHTTP
-  class Response
+class NGHTTP::Response
     @http_version = "1.1"
     @status_code = 0
     @status_message = ""
@@ -8,7 +7,12 @@ module NGHTTP
     @env : HTTPEnv | Nil = nil
     @saved_body : String? = nil
 
-    property :http_version, :status_code, :status_message, :headers, :body_io, :env
+    property http_version, status_code, status_message, headers, body_io
+setter env
+
+def env
+@env.not_nil!
+end
 
     def date
       HTTP.parse_time @headers["Date"]
@@ -132,4 +136,3 @@ end
       end
     end
   end # class
-end   # module

@@ -3,14 +3,21 @@ module NGHTTP
     @require_reconnect = false
     @queue : Channel(Transport)? = nil
     @tls : OpenSSL::SSL::Context::Client? = nil
-    @dns_timeout = 2
-    @connect_timeout : Float64 | Int32 = 5
-    @read_timeout : Float64 | Int32 = 30
+    @dns_timeout = 2.seconds
+    @connect_timeout = 5.seconds
+    @read_timeout = 30.seconds
     @proxy_host : String
     @proxy_port : Int32
     @proxy_username : String?
     @proxy_password : String?
     @proxy_options : HTTP::Params?
+    alias SocketType = Socket | OpenSSL::SSL::Socket::Client | TransparentIO
+@socket : SocketType? = nil
+setter socket
+
+abstract def broken? : Bool
+    abstract def handle_request(env : HTTPEnv)
+    abstract def handle_response(env : HTTPEnv)
 
     def require_reconnect=(t : Bool)
       @require_reconnect = t
@@ -18,22 +25,6 @@ module NGHTTP
 
     def require_reconnect?
       @require_reconnect
-    end
-
-    alias SocketType = Socket | OpenSSL::SSL::Socket::Client | TransparentIO
-
-    abstract def socket=(s : SocketType?)
-    abstract def socket? : SocketType?
-    abstract def rawsocket? : Socket?
-    abstract def handle_request(env : HTTPEnv)
-    abstract def handle_response(env : HTTPEnv)
-
-    def socket
-      socket?.not_nil!
-    end
-
-    def rawsocket
-      rawsocket?.not_nil!
     end
 
     def initialize(queue, host, port, username, password, options, tls)
@@ -46,18 +37,15 @@ module NGHTTP
       @tls = tls
     end
 
-    def read_timeout=(t)
-      if s = rawsocket?
-        s.read_timeout = t
-      end
+    def read_timeout=(t : Time::Span)
       @read_timeout = t
     end
 
-    def connect_timeout=(t)
+    def connect_timeout=(t : Time::Span)
       @connect_timeout = t
     end
 
-    def dns_timeout=(t)
+    def dns_timeout=(t : Time::Span)
       @dns_timeout = t
     end
 
@@ -76,11 +64,6 @@ module NGHTTP
       rescue e
         raise e unless ignore_errors
       end
-        begin
-        rawsocket.close if rawsocket? && (!rawsocket.closed?)
-        rescue e
-          raise e unless ignore_errors
-        end # begin/rescue
     end     # def
 
     def closed?
@@ -88,18 +71,9 @@ module NGHTTP
     end
 
     def no_socket?
-      socket? == nil
+      @socket == nil
     end
 
-    def broken?
-      broken = true
-      begin
-        rawsocket.wait_readable 0.1.seconds
-      rescue e
-        broken = false
-      end # read?
-      broken
-    end
   end # class
 
 end # module

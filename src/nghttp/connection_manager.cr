@@ -1,19 +1,29 @@
+class NGHTTP::Config
+hk verify : Bool
+end
+
+class NGHTTP::InternalConfig
+hk origin : String
+hk port : Int32
+hk transport : Transport
+end
+
 module NGHTTP
   alias Resolver = (String -> String)
   alias SSLContextResolver = Proc(OpenSSL::SSL::Context::Client)
 
-  class Connections
+  class ConnectionManager
     # @available = Hash(String,Channel(Connection)).new
     @all = Hash(String, Channel(Transport)).new
     @connections_per_host = 1
     alias SSLClientContext = OpenSSL::SSL::Context::Client
 
     def get_timeout(t : Int)
-      t
+      t.seconds
     end
 
     def get_timeout(t : Float)
-      t
+      t.seconds
     end
 
     def get_timeout(t)
@@ -116,7 +126,6 @@ module NGHTTP
       read_timeout = get_timeout read_timeout
       conn.connect_timeout = connect_timeout
       conn.read_timeout = read_timeout
-      slowbroke = env.config["use_slow_broken_check"]?
       if conn.no_socket?
         conn.connect env
       elsif conn.closed?
@@ -124,9 +133,9 @@ module NGHTTP
       elsif conn.require_reconnect?
         conn.close true
         conn.connect env
-      elsif 1 == 0 && conn.broken?
-        conn.close true
-        conn.connect env
+#      elsif 1 == 0 && conn.broken?
+#        conn.close true
+#        conn.connect env
       else
       end # if
       conn

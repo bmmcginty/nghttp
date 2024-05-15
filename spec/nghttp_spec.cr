@@ -10,7 +10,12 @@ class C
 end
 
 #SRV="https://httpbin.org"
-SRV="http://127.0.0.1:8100"
+SRV="http://127.0.0.1:5000"
+
+def new_config
+C.c.new_config
+end
+
 {% for method in %w(get post put delete) %}
 def j{{method.id}}(url, **kw)
 url=url.strip "/"
@@ -89,14 +94,18 @@ describe Nghttp do
   end
 
   it "authorizes with propper username and password" do
-    rget "/basic-auth/abc/def", basic_auth: ["abc", "def"] do |resp|
+cfg=new_config
+cfg.basic_auth=["abc","def"]
+    rget "/basic-auth/abc/def", config: cfg do |resp|
       JSON.parse(resp.body_io)["user"].as_s.should eq "abc"
       resp.status_code.should eq 200
     end
   end
 
   it "failes to authorize with invalid username and password" do
-    rget "/basic-auth/abc/def", basic_auth: ["ghi", "jkl"] do |resp|
+cfg=new_config
+cfg.basic_auth=["ghi","jkl"]
+    rget "/basic-auth/abc/def", config: cfg do |resp|
       resp.status_code.should eq 401
     end
   end
@@ -130,21 +139,28 @@ describe Nghttp do
   end
 
   it "handles only permitted number of redirects before throwing error" do
-    rget "/redirect/3", max_redirects: 3 do |resp|
+cfg=new_config
+cfg["max_redirects"]=3
+    rget "/redirect/3", config: cfg do |resp|
       resp.env.request.uri.path.should eq "/get"
       resp.body_io.skip_to_end
     end
-    expect_raises(NGHTTP::TooManyRedirectionsError) do
-      rget "/redirect/2", max_redirects: 1 do |resp|
-        resp.env.request.uri.path.should eq "/get"
-        resp.body_io.skip_to_end
+    expect_raises(NGHTTP::TooManyRedirectsError) do
+cfg=new_config
+cfg["max_redirects"]=1
+      rget "/redirect/2", config: cfg do |resp|
+raise Exception.new("code should never get here")
+#        resp.env.request.uri.path.should eq "/get"
+#        resp.body_io.skip_to_end
       end
     end
   end
 
   it "raises when no redirects are allowed" do
-    expect_raises(NGHTTP::TooManyRedirectionsError) do
-      rget "/redirect/1", max_redirects: 0 do |resp|
+    expect_raises(NGHTTP::TooManyRedirectsError) do
+cfg=new_config
+cfg["max_redirects"]=0
+      rget "/redirect/1", config: cfg do |resp|
         resp.env.request.uri.path.should eq "/get"
         resp.body_io.skip_to_end
       end
@@ -171,13 +187,20 @@ describe Nghttp do
   end
 
   it "handles read timeouts and clears underlying connections propperly" do
-    3.times do
+    3.times do |tim|
       expect_raises(Exception) do
-        rget "/delay/5", read_timeout: 1 do |resp|
-        end
-      end
-    end
-    rget "/delay/1", read_timeout: 3 do |resp|
+cfg=new_config
+cfg["read_timeout"]=1
+        rget "/delay/5?t=#{tim}", config: cfg do |resp|
+        end # rget
+      end # raises
+    end # times
+end # it
+
+it "respects longer timeouts" do
+cfg=new_config
+cfg["read_timeout"]=3
+    rget "/delay/1", config: cfg do |resp|
       resp.should_not be nil
     end
   end
@@ -186,17 +209,25 @@ describe Nghttp do
     rget "/range/1024" do |resp|
       resp.body.size.should eq 1024
     end
-    rget "/range/1024", offset: 2 do |resp|
+cfg=new_config
+cfg["offset"]=2
+    rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 1022
     end
-    rget "/range/1024", offset: "4" do |resp|
+cfg=new_config
+cfg["offset"]="4"
+    rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 1020
     end
-    rget "/range/1024", offset: 5..9 do |resp|
+cfg=new_config
+cfg["offset"]=5..9
+    rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 5
       resp.body.should eq "fghij"
     end
-    rget "/range/1024", offset: 0...5 do |resp|
+cfg=new_config
+cfg["offset"]=0...5
+    rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 5
       resp.body.should eq "abcde"
     end
@@ -207,7 +238,10 @@ describe Nghttp do
       "http"  => "http://192.168.1.201:8888/",
       "https" => "http://192.168.1.201:8888/",
     }
-    rget "/get", proxies: prx, timeout: 0.1 do
+cfg=new_config
+cfg["proxies"]=prx
+cfg["timeout"]=0.1
+    rget "/get", config: cfg do
     end
   end
 

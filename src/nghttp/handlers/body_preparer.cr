@@ -1,5 +1,4 @@
-module NGHTTP
-  class BodyPreparer
+class NGHTTP::BodyPreparer
     include Handler
     @after_me = ["BodySender"]
 
@@ -25,4 +24,3 @@ module NGHTTP
       end
     end
   end # class
-end   # module

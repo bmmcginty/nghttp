@@ -23,8 +23,4 @@ getter env
 
   end #class
 
-
-  class TooManyRedirectionsError < HTTPError
-  end
-
 end #module

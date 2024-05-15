@@ -19,7 +19,9 @@ class NGHTTP::ParallelDownloader
     path = path.as(String)
     multi = false
     size = 0
-    env.session.head url: env.request.uri.to_s, offset: 0...1 do |resp|
+cfg=env.session.new_config
+cfg["offset"]=(0...1)
+    env.session.head url: env.request.uri.to_s, config: cfg do |resp|
       if resp.status_code == 206
         multi = true
         if m = resp.headers.fetch("Content-Range", "").match(/bytes \d+-\d+\/(\d+)/i)
@@ -152,7 +154,9 @@ class NGHTTP::ParallelDownloader
   end   # def
 
   def download2(env, fh, index, start, size)
-    env.session.get env.request.uri.to_s, offset: (start...start + size) do |resp|
+cfg=env.session.new_config
+cfg["offset"]=(start...start+size)
+    env.session.get url: env.request.uri.to_s, config: cfg do |resp|
       IO.copy(resp.body_io, fh)
     end # if
   end   # def

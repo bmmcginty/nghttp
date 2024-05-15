@@ -72,10 +72,10 @@ module Socks
     @remoteaddr = {"", 0}
     @localaddr = {"", 0}
     getter! :socks
-    getter :socks_host, :socks_port
+    getter socks_host, socks_port
 
-def write(io : Bytes) : Nil
-socks.write io
+def write(data : Bytes) : Nil
+socks.write data
 end
 
     delegate read, close, closed?, flush, peek, tty?, rewind, to: socks

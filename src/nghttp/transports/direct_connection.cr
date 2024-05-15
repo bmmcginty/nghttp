@@ -1,20 +1,8 @@
 module NGHTTP
   class DirectConnection < Transport
-    alias SocketType = TCPSocket | OpenSSL::SSL::Socket::Client | TransparentIO
     @rawsocket : TCPSocket? = nil
     @socket : SocketType? = nil
-
-    def socket=(s)
-      @socket = s
-    end
-
-    def socket?() : IO?
-      @socket
-    end
-
-    def rawsocket? : Socket?
-      @rawsocket
-    end
+getter! socket
 
     def connect(env : HTTPEnv)
       origin = env.int_config["origin"].as(String)
@@ -37,14 +25,27 @@ module NGHTTP
       @socket = s
     end
 
+    def broken? : Bool
+      broken = true
+      begin
+        socket.wait_readable 0.1.seconds
+      rescue e
+        broken = false
+      end # read?
+      broken
+    end
+
     def handle_request(env : HTTPEnv)
       Utils.request_to_http_io env
+if env.request.body_io?
+          IO.copy(env.request.body_io, env.connection.socket)
+env.connection.socket.flush
+end
     end
 
     def handle_response(env : HTTPEnv)
-      a = Time.monotonic
       Utils.http_io_to_response env
-      b = Time.monotonic
     end
+
   end # class
 end

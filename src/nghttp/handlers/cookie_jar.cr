@@ -1,10 +1,37 @@
-module NGHTTP
-  class Cookiejar
-    alias Cookie = HTTP::Cookie
+class NGHTTP::Cookiejar    
     include Handler
+
+alias Cookie = HTTP::Cookie
     @cookies = Hash(String, Array(Cookie)).new
     @custom_cookies = Hash(String, Array(Cookie)).new
     @disabled = false
+
+    getter cookies, custom_cookies
+    property :disabled
+
+    def initialize
+    end
+
+    def call(env)
+      if @disabled
+return
+end
+        if env.request?
+handle_request env
+end
+if env.response?
+handle_response env
+end
+call_next env
+end
+
+def handle_request(env)
+          set_headers_from_cookiejar headers: env.request.headers, uri: env.request.uri
+end
+
+def handle_response(env)
+          set_cookiejar_from_headers headers: env.response.headers, uri: env.request.uri
+    end
 
     def to_json(json : JSON::Builder)
       json.object do
@@ -35,15 +62,9 @@ module NGHTTP
       end   # case
     end     # def
 
-    getter cookies, custom_cookies
-    property :disabled
-
     def clear
       @cookies.clear
       @custom_cookies.clear
-    end
-
-    def initialize
     end
 
     def []=(name, value)
@@ -75,17 +96,6 @@ module NGHTTP
       end     # jar
       a.join("; ")
     end # def
-
-    def call(env)
-      if @disabled == false
-        if env.request?
-          set_headers_from_cookiejar headers: env.request.headers, uri: env.request.uri
-        else
-          set_cookiejar_from_headers headers: env.response.headers, uri: env.request.uri
-        end
-      end
-      call_next env
-    end
 
     def set_headers_from_cookiejar(headers : HTTP::Headers, url : String)
       set_headers_from_cookiejar(headers, URI.parse url)
@@ -183,5 +193,3 @@ module NGHTTP
       end
     end
   end # class
-
-end # module

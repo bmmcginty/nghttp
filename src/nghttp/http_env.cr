@@ -1,12 +1,9 @@
 require "./handler.cr"
 require "./transport.cr"
+require "./types.cr"
 
 module NGHTTP
   class HTTPEnv
-    alias FilesValuesType = IO | String | Tuple(String, IO) | Tuple(String, IO, String) | Tuple(String, IO, String, HTTP::Headers)
-    alias FilesType = Hash(String, FilesValuesType) | Array(Tuple(String, FilesValuesType))
-    alias ConfigValuesType = String | Int32 | Float64 | Bool | Nil | Time::Span | Array(String) | Range(Int32, Int32) | Range(Int64, Int64) | Handler | HTTP::Headers | Transport | URI | Proc(String, String?) | Proc(String, String) | OpenSSL::SSL::Context::Client | Hash(String, String) | FilesType | IO | Array(Int32) | Proc(OpenSSL::SSL::Context::Client)
-    alias ConfigType = Hash(String, ConfigValuesType)
     # Hash(String,String|Int32|Float64|Bool|Nil|Handler)
     enum State
       None
@@ -15,28 +12,40 @@ module NGHTTP
       Closed
     end
 
-    property state : State = State::None
-    property session : Session? = nil
-    property connection : Transport? = nil
-    property config = ConfigType.new
-    property int_config = ConfigType.new
-    property request = Request.new
-    property response = Response.new
+@state : State = State::None
+@session : Session
+@connection : Transport? = nil
+@config = Config.new
+@int_config = IntConfig.new
+@request : Request? = nil
+@response : Response? = nil
+setter request, response, connection, state
+getter config, int_config, session, state
 
-    getter! :session
+# creates a new config, potentially fo ra sub-request
+def connection
+@connection.not_nil!
+end
+def request
+@request.not_nil!
+end
+def response
+@response.not_nil!
+end
 
-    getter! :connection
+def initialize(@session)
+end
 
     def connection?
       @connection
     end
 
     def request?
-      @state == State::Request
+      @state.request?
     end
 
     def response?
-      @state == State::Response
+      @state.response?
     end
 
     def close(force_close_connection = false)
@@ -78,7 +87,7 @@ module NGHTTP
   end # class
 
   class Wrapper
-    @cls : HTTPEnv::ConfigType
+    @cls : Types::ConfigType
 
     def initialize(@cls)
     end

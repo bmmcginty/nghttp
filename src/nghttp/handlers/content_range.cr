@@ -6,6 +6,12 @@ class NGHTTP::ContentRange
 
   def call(env : HTTPEnv)
     if env.request?
+handle_request env
+end
+    call_next env
+  end # def
+
+def handle_request(env)
       offset = env.config["offset"]?
       if offset.is_a?(String)
         env.request.headers["Range"] = "bytes=#{offset}-"
@@ -18,7 +24,6 @@ class NGHTTP::ContentRange
       elsif offset.is_a?(Range)
         env.request.headers["Range"] = "bytes=#{offset.begin}-#{offset.end}"
       end # if offset
-    end   # if request
-    call_next env
-  end # def
+end # def
+
 end   # class

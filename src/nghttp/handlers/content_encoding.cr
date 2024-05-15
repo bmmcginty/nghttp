@@ -1,15 +1,27 @@
-module NGHTTP
-  class ContentEncoding
+class NGHTTP::ContentEncoding
     include Handler
 
     def initialize
     end
 
     def call(env : HTTPEnv)
-      if env.request? && !env.request.headers["Accept-Encoding"]?
+if env.request?
+handle_request env
+end
+if env.response?
+handle_response env
+end
+      call_next env
+end
+
+def handle_request(env)
+      if !env.request.headers["Accept-Encoding"]?
         env.request.headers["Accept-Encoding"] = "gzip,deflate"
       end
-      if env.response? && env.request.method != "HEAD"
+    end # def
+
+def handle_response(env)
+      if env.request.method != "HEAD"
         encoding = env.response.headers["Content-Encoding"]?
         if encoding
           out_io = env.response.body_io.not_nil!
@@ -27,9 +39,7 @@ module NGHTTP
           end            # each
           env.response.body_io = TransparentIO.new out_io
         end # encoding
-      end   # response?
-      call_next env
-    end # def
+end # if we have a body
+end # def
 
   end # class
-end   # module

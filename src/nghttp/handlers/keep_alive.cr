@@ -1,5 +1,4 @@
-module NGHTTP
-  class KeepAlive
+class NGHTTP::KeepAlive
     include Handler
 
     def initialize
@@ -26,4 +25,3 @@ module NGHTTP
     end   # def
 
   end # class
-end   # module

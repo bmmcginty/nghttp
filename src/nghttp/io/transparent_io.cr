@@ -6,9 +6,13 @@ module NGHTTP
     @on_write : Writer?
     @on_read : Reader?
     @on_close : Closer?
-    @io : IO
+    @io : TCPSocket|OpenSSL::SSL::Socket::Client |TransparentIO
     @close_underlying_io : Bool
-    property :io, :close_underlying_io
+    property io, close_underlying_io
+
+def wait_readable(t)
+@io.wait_readable t
+end
 
     def to_s(io : IO)
       io << to_s
