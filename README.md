@@ -16,19 +16,35 @@ dependencies:
 
 ```crystal
 require "nghttp"
+# Create a session.
+# It can persist cookies and connections.
 s=NGHTTP::Session.new
+# Override the user-agent header.
 s.headers["User-Agent"]="New User-Agent"
-s.config["cache"]=true
-s.config["cache_expires"]=1.hours
-body=nil
-s.get"https://example.org/") do |resp|
-body=resp.xml
+# Enable the cache.
+s.config.cache=true
+s.config.cache_expires=1.hours
+body = s.get"https://example.org/") do |resp|
+resp.xml
 end
 ```
 
+## Testing
+
+Clone httpbin.
+`git clone https://github.com/bmmcginty/httpbin`
+Add to nginx.conf for keep-alive testing:
+```
+location /conn {
+default_type application/json;
+return 200 '{"connection": "$connection", "connection_requests": "$connection_requests", "connection_time": "$connection_time"}';
+}
+```
+See `spec/nghttp_spec.cr`.
+
 ## Development
 
-Most work can be found in the handlers directory.
+Most code can be found in the handlers directory.
 
 ## Contributing
 
@@ -40,4 +56,4 @@ Most work can be found in the handlers directory.
 
 ## Contributors
 
-- [bmmcginty](https://github.com/bmmcginty) Brandon McGinty-Carroll - creator, maintainer
+- [bmmcginty](https://github.com/bmmcginty) Brandon McGinty - creator, maintainer
