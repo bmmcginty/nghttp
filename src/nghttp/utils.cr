@@ -1,12 +1,13 @@
 module NGHTTP
-class BrokenConnection < Exception
-def to_s
-"broken_connection"
-end
-def to_s(io : IO)
-io << to_s
-end
-end
+  class BrokenConnection < Exception
+    def to_s
+      "broken_connection"
+    end
+
+    def to_s(io : IO)
+      io << to_s
+    end
+  end
 
   class Utils
     def self.request_to_http_io(env, full_url = false, io = nil)
@@ -27,34 +28,34 @@ end
              end
       eurl = eurl.gsub(" ", "%20")
       req_line = "#{req.method.upcase} #{eurl} HTTP/#{req.http_version}\r\n"
-        c = io ? io : env.connection.socket
-        t = c
-        while t.is_a?(TransparentIO)
-          t = t.io
-        end
-        t.as(IO::Buffered).sync = false
-#        begin
-          c << req_line
-          req.headers.each do |k, vl|
-            vl.each do |v|
-              hv = "#{k}: #{v}\r\n"
-              c << hv
-end #each single header
-            end #each header
-          c << "\r\n"
-          c.flush
-#rescue e
-#raise BrokenConnection.new
-#          end #begin/end
-          # if req.body_io?
-          # IO.copy req.body_io,c
-          # end
-          # c.flush
-    end   # def
+      c = io ? io : env.connection.socket
+      t = c
+      while t.is_a?(TransparentIO)
+        t = t.io
+      end
+      t.as(IO::Buffered).sync = false
+      #        begin
+      c << req_line
+      req.headers.each do |k, vl|
+        vl.each do |v|
+          hv = "#{k}: #{v}\r\n"
+          c << hv
+        end # each single header
+      end   # each header
+      c << "\r\n"
+      c.flush
+      # rescue e
+      # raise BrokenConnection.new
+      #          end #begin/end
+      # if req.body_io?
+      # IO.copy req.body_io,c
+      # end
+      # c.flush
+    end # def
 
     macro ts
-#t=Time.monotonic
-end
+      # t=Time.monotonic
+    end
 
     macro te(msg)
     end
@@ -68,11 +69,11 @@ end
       rh = resp.headers
       te "rsetup"
       ts
-begin
-      rl = io.gets.not_nil!.split(" ", 3)
-rescue e : NilAssertionError
-raise BrokenConnection.new
-end
+      begin
+        rl = io.gets.not_nil!.split(" ", 3)
+      rescue e : NilAssertionError
+        raise BrokenConnection.new
+      end
       te "rl1"
       ts
       resp.http_version = rl[0].split("/", 2)[1]
@@ -92,7 +93,7 @@ end
       end # while
       te "rheaders"
       ts
-      resp.body_io = TransparentIO.new io, false
+      resp.body_io = TransparentIO.new io, close_underlying_io: false
       te "rnewio"
     end # def
 

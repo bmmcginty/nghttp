@@ -2,7 +2,7 @@ module NGHTTP
   class HTTPError < Exception
     @env : HTTPEnv
     @message : String? = nil
-getter env
+    getter env
 
     def initialize(@env, @message)
     end
@@ -20,7 +20,6 @@ getter env
     def inspect
       "#{@env.request.uri.to_s}:#{@message}"
     end
+  end # class
 
-  end #class
-
-end #module
+end # module

@@ -1,24 +1,11 @@
-class NGHTTP::Config
-hk cache : Bool
-hk cache_expires : Time::Span
-hk cache_key : String
-hk cache_statuses : Array(Int32)
-end
-
-class NGHTTP::InternalConfig
-hk no_save_cache : Bool
-hk from_cache : Bool
-end
-
-module Cache
+abstract class NGHTTP::Cacher
   abstract def get_key(env : NGHTTP::HTTPEnv)
   abstract def have_key?(env : HTTP::Environment)
   abstract def get_cache(env : NGHTTP::HTTPEnv)
   abstract def put_cache(env : NGHTTP::HTTPEnv)
 end
 
-class FSCache
-  include Cache
+class NGHTTP::FSCache < NGHTTP::Cacher
   @root : String
   @hd = OpenSSL::Digest.new("md5")
 
@@ -28,7 +15,7 @@ class FSCache
 
   def get_key(env : NGHTTP::HTTPEnv)
     req = env.request
-    get_key(req.method, req.url, env.config["cache_key"]?, req.headers, req.body_io?)
+    get_key(req.method, req.url, env.config.cache_key?, req.headers, req.body_io?)
   end
 
   def get_key(method, url, cache_key, headers, body)
@@ -42,7 +29,7 @@ class FSCache
         tmp = part[right..-1]
         @hd.reset
         @hd.update(tmp)
-tmp = @hd.final.hexstring
+        tmp = @hd.final.hexstring
         part = part[0, right - 1] + "_#{tmp}"
       end
       part
@@ -53,7 +40,7 @@ tmp = @hd.final.hexstring
     end
     @hd.reset
     @hd.update(path)
-t = @hd.final.hexstring[0..1]
+    t = @hd.final.hexstring[0..1]
     t = "#{@root}/#{t}/#{path}.#{method}"
     if cache_key
       t = "#{t}.#{cache_key}"
@@ -88,7 +75,7 @@ t = @hd.final.hexstring[0..1]
   def finish_put(env, fh)
     name = fh.path
     fh.close
-    if env.int_config["no_save_cache"]? == true
+    if env.int_config.discard_cache? == true
       File.delete name
     else
       File.rename name, name[0..name.rindex(".temp").not_nil! - 1]
@@ -105,97 +92,83 @@ t = @hd.final.hexstring[0..1]
 end # class
 
 class NGHTTP::Cache
-    include Handler
-    @cacher : ::Cache
-    # @transport : Transport
-    @default_cache : Bool
-    @wait : Int32 | Float64
+  include Handler
+  @cacher : Cacher
 
-    def cacher
-      @cacher
+  # @transport : Transport
+
+  def cacher
+    @cacher
+  end
+
+  def initialize(cacher = FSCache)
+    @cacher = cacher.new
+  end
+
+  def call(env)
+    if env.request?
+      handle_request env
+    else
+      env.response?
+      handle_response env
     end
+    call_next env
+  end
 
-    def initialize(cacher = FSCache, @default_cache = false, @wait = 1, **kw)
-      @cacher = cacher.new **kw
-      # @transport = CacheTransport.new(cacher)
+  def handle_request(env)
+    # if we don't provide cached results by default, and the request doesn't request it, don't return a cached result
+    # if caching is disabled, return
+    if env.config.cache? != true
+      return
     end
-
-    def call(env)
-      if env.request?
-        handle_request env
-      else
-        env.response?
-        handle_response env
-      end
-      call_next env
-    end
-
-    def handle_request(env)
-      # if we don't provide cached results by default, and the request doesn't request it, don't return a cached result
-      rwait = env.config.fetch("wait", @wait)
-      if rwait.is_a?(Nil)
-        rwait = nil
-      elsif rwait.is_a?(Time::Span)
-		rwait=rwait.total_seconds
-      else
-        rwait = rwait.as(String | Int32 | Float64).to_f
-      end
-      # if caching is disabled, return
-      if env.config["cache"]? != true
-        if rwait
-          sleep rwait.not_nil!
-        end
+    # after this point, caching has been requested.
+    exp = env.config.cache_expires?
+    exp = exp ? exp.as(Time::Span) : nil
+    cached = cacher.have_key? env
+    # if we have a list of permitted cacheable statuses,
+    # and this status code is not included,
+    # then don't cache; just return
+    okcodes = env.config.cache_statuses?
+    if cached && okcodes
+      tfh = File.open(cacher.get_key(env), "rb")
+      sc = tfh.gets.try(&.split(" ")[1]?.try(&.to_i?))
+      tfh.close
+      if !(sc && okcodes.not_nil!.as(Array(Int32)).includes?(sc.not_nil!))
         return
       end
-      # after this point, caching has been requested.
-      exp = env.config["cache_expires"]?
-      exp = exp ? exp.as(Time::Span) : nil
-      cached = cacher.have_key? env
-      # if we have a list of permitted cacheable statuses,
-      # and this status code is not included,
-      # then don't cache; just return
-      okcodes = env.config["cache_statuses"]?
-      if cached && okcodes
-        tfh = File.open(cacher.get_key(env), "rb")
-        sc = tfh.gets.try(&.split(" ")[1]?.try(&.to_i?))
-        tfh.close
-        return unless (sc && okcodes.not_nil!.as(Array(Int32)).includes?(sc.not_nil!))
-      end # not cached or okcodes not set
-      # if url not in cache
-      cacheStillAlive = if !cached
-                          false
-                          # if no expiration
-                        elsif !exp
-                          true
-                          # cache entry is newer than expiration
-                        elsif File.stat(cacher.get_key(env)).mtime > (Time.utc - exp)
-                          true
-                          # need to recache because of expiration
-                        else
-                          false
-                        end
-      # must [re]save to cache
-      unless (cached && cacheStillAlive)
-        env.int_config["to_cache"] = true
-        if rwait
-          sleep rwait.not_nil!
-        end
-        return
-      end
-      # we'll be reading from a non-expired and existing cache
-      env.int_config["from_cache"] = true
-      env.int_config["transport"] = CacheTransport.new env: env, cacher: cacher
-    end # def
+    end # not cached or okcodes not set
+    # if url not in cache
+    cacheStillAlive = if !cached
+                        false
+                        # if no expiration
+                      elsif !exp
+                        true
+                        # cache entry is newer than expiration
+                      elsif File.stat(cacher.get_key(env)).mtime > (Time.utc - exp)
+                        true
+                        # need to recache because of expiration
+                      else
+                        false
+                      end
+    # must [re]save to cache
+    unless (cached && cacheStillAlive)
+      env.int_config.to_cache = true
+      return
+    end
+    # we'll be reading from a non-expired and existing cache
+    env.int_config.from_cache = true
+    env.int_config.transport = CacheTransport.new cacher: cacher
+  end # def
 
-    def handle_response(env)
-      if env.int_config["to_cache"]? != true
-return
-end
-      okcodes = env.config["cache_statuses"]?
-      if okcodes && !(okcodes.not_nil!.as(Array(Int32)).includes?(env.response.status_code))
-        return
-      end
-      cacher.put_cache env
-    end # def
+  def handle_response(env)
+    if env.int_config.to_cache? != true
+      return
+    end
+    okcodes = env.config.cache_statuses?
+    if okcodes && !(okcodes.not_nil!.as(Array(Int32)).includes?(env.response.status_code))
+      return
+    end
+    cacher.put_cache env
+  end # def
 
-  end # class
+end # class

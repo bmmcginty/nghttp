@@ -1,37 +1,31 @@
-module NGHTTP
-  class CacheTransport < Transport
-    @io : IO
-@socket = File.open("/dev/null","w")
-getter! socket
+class NGHTTP::CacheTransport < NGHTTP::Transport
+  @socket : SocketType? = nil
+  getter! socket
+  @cacher : NGHTTP::Cacher
 
-    def initialize(env, cacher)
-      @io = cacher.get_cache env
-      @proxy_host = ""
-      @proxy_port = 0
-    end
-
-def broken? : Bool
-true
-end
-
-    def closed?
-      @io.closed?
-    end
-
-    def broken? : Bool
-      false
-    end
-
-    def connect(env)
-    end
-
-    def handle_request(env : HTTPEnv)
-      nil
-    end
-
-    def handle_response(env : HTTPEnv)
-      Utils.http_io_to_response env: env, io: @io
-      env.response.body_io.as(TransparentIO).close_underlying_io = true
-    end
+  def initialize(@cacher)
   end
-end
+
+  def broken? : Bool
+    true
+  end
+
+  def closed?
+    socket.closed?
+  end
+
+  def release
+  end
+
+  def connect(env)
+    @socket = @cacher.get_cache(env)
+  end
+
+  def handle_request(env : HTTPEnv)
+    nil
+  end
+
+  def handle_response(env : HTTPEnv)
+    Utils.http_io_to_response env: env
+  end
+end # class

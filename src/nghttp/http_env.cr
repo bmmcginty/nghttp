@@ -12,29 +12,31 @@ module NGHTTP
       Closed
     end
 
-@state : State = State::None
-@session : Session
-@connection : Transport? = nil
-@config = Config.new
-@int_config = IntConfig.new
-@request : Request? = nil
-@response : Response? = nil
-setter request, response, connection, state
-getter config, int_config, session, state
+    @state : State = State::None
+    @session : Session
+    @connection : Transport? = nil
+    @config = Config.new
+    @int_config = IntConfig.new
+    @request : Request? = nil
+    @response : Response? = nil
+    setter request, response, connection, state
+    getter config, int_config, session, state
 
-# creates a new config, potentially fo ra sub-request
-def connection
-@connection.not_nil!
-end
-def request
-@request.not_nil!
-end
-def response
-@response.not_nil!
-end
+    # creates a new config, potentially fo ra sub-request
+    def connection
+      @connection.not_nil!
+    end
 
-def initialize(@session)
-end
+    def request
+      @request.not_nil!
+    end
+
+    def response
+      @response.not_nil!
+    end
+
+    def initialize(@session)
+    end
 
     def connection?
       @connection
@@ -49,7 +51,6 @@ end
     end
 
     def close(force_close_connection = false)
-      config["no_save_cache"] = true if force_close_connection
       @state = State::Closed
       err = nil
       begin
@@ -64,11 +65,11 @@ end
             conn.close ignore_errors: true
           rescue e
             err = e
-          end
-        end
+          end # rescue
+        end   # if force
         conn.release
         conn = @connection = nil
-      end
+      end # if con
       raise err if err
     end
 

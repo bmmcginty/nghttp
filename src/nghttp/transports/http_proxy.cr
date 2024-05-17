@@ -7,20 +7,19 @@ module NGHTTP
     @socket : SocketType? = nil
 
     def connect(env : HTTPEnv)
-      s = TCPSocket.new(@proxy_host, @proxy_port)
+      proxy_uri = URI.parse env.int_config.proxy
+      s = TCPSocket.new(proxy_uri.host.not_nil!, proxy_uri.port.not_nil!)
       @rawsocket = s
       if @https_proxy
         ctx = OpenSSL::SSL::Context::Client.new
-        # todo: fix this to take false/0 or change to get rid of string-passing config mess altogether
-        if @proxy_options && @proxy_options.not_nil!["verify"]? == "false"
-          ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
-        end
-        s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: @proxy_host, sync_close: true
-      end
+        # support verify=0 in proxy_uri.params
+        #          ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+        s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: proxy_uri.host.not_nil!, sync_close: true
+      end # if https
       # https over an http proxy
       if env.request.uri.scheme == "https"
-        origin = env.int_config["origin"]
-        port = env.int_config["port"]
+        origin = env.int_config.origin
+        port = env.int_config.port
         s << "CONNECT #{origin}:#{port} HTTP/1.1\r\nHost: #{origin}\r\n\r\n"
         s.flush
         rs = s.gets
@@ -38,8 +37,8 @@ module NGHTTP
           s.close
           raise Exception.new("HTTP Proxy returned HTTP error #{parts[1]} when connecting to #{origin}:#{port}")
         end
-        tls = @tls.as(OpenSSL::SSL::Context::Client)
-        t = OpenSSL::SSL::Socket::Client.new s, context: tls, hostname: env.request.uri.host, sync_close: true
+        #        tls = @tls.as(OpenSSL::SSL::Context::Client)
+        t = OpenSSL::SSL::Socket::Client.new s, hostname: env.request.uri.host, sync_close: true
         @socket = t
       else
         @socket = s
@@ -53,11 +52,10 @@ module NGHTTP
                      false
                    end
       Utils.request_to_http_io env, useLongUrl
-if env.request.body_io?
-          IO.copy(env.request.body_io, env.connection.socket)
-env.connection.socket.flush
-end
+      if env.request.body_io?
+        IO.copy(env.request.body_io, env.connection.socket)
+        env.connection.socket.flush
+      end
     end
-
   end # class
 end   # module

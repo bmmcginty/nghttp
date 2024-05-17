@@ -6,13 +6,13 @@ module NGHTTP
     @on_write : Writer?
     @on_read : Reader?
     @on_close : Closer?
-    @io : TCPSocket|OpenSSL::SSL::Socket::Client |TransparentIO
+    @io : TCPSocket | OpenSSL::SSL::Socket::Client | TransparentIO
     @close_underlying_io : Bool
     property io, close_underlying_io
 
-def wait_readable(t)
-@io.wait_readable t
-end
+    def wait_readable(t)
+      @io.wait_readable t
+    end
 
     def to_s(io : IO)
       io << to_s
@@ -61,9 +61,9 @@ end
 
     def read(slice : Bytes)
       size = @io.read slice
-#      if @io.is_a? Compress::Gzip::Reader
-        # STDOUT.write slice[0,size]
-#      end
+      #      if @io.is_a? Compress::Gzip::Reader
+      # STDOUT.write slice[0,size]
+      #      end
       if @on_read
         @on_read.not_nil!.call(slice, size)
       end

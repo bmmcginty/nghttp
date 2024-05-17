@@ -22,6 +22,6 @@ class ExactSizeReader < IO
   end
 
   def to_s(sio)
-    sio.puts "ExactSizeReader@#{hash} <#{@io.inspect}>"
+    sio << "ExactSizeReader@#{hash} <#{@io.inspect}>\n"
   end
 end

@@ -1,7 +1,3 @@
-class NGHTTP::Config
-hk basic_auth : Array(String)?
-end
-
 class NGHTTP::BasicAuthorization
   include Handler
 
@@ -17,7 +13,6 @@ class NGHTTP::BasicAuthorization
 
   def handle_request(env)
     creds = env.config.basic_auth?
-puts "creds", creds
     if creds
       env.request.headers["Authorization"] = make_basic_auth_string creds[0], creds[1]
     end

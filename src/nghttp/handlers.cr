@@ -13,6 +13,7 @@ module NGHTTP
       TransferEncoding,
       BodyPreparer,
       Cache,
+      Wait,
       HTTPConnecter,
       BodySender,
       Toggler,

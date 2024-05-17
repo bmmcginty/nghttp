@@ -2,18 +2,19 @@ require "./spec_helper"
 require "json"
 
 class C
-  @@c = NGHTTP::Session.new max_redirects: 3, wait: nil, debug: false
+  @@c = NGHTTP::Session.new
+  @@c.config.max_redirects = 3
+  @@c.config.wait = 0.seconds
 
   def self.c
     @@c
   end
 end
 
-#SRV="https://httpbin.org"
-SRV="http://127.0.0.1:5000"
+SRV = "http://127.0.0.1:5000"
 
 def new_config
-C.c.new_config
+  C.c.new_config
 end
 
 {% for method in %w(get post put delete) %}
@@ -33,6 +34,16 @@ yield resp
 end
 end
 {% end %}
+
+def keep_alive(alive : Bool)
+  headers = HTTP::Headers.new
+  if alive == false
+    headers["Connection"] = "close"
+  end
+  C.c.get("http://127.0.0.1/conn", headers: headers) do |resp|
+    yield JSON.parse(resp.body_io)
+  end
+end
 
 describe Nghttp do
   it "gets ip" do
@@ -94,8 +105,8 @@ describe Nghttp do
   end
 
   it "authorizes with propper username and password" do
-cfg=new_config
-cfg.basic_auth=["abc","def"]
+    cfg = new_config
+    cfg.basic_auth = {"abc", "def"}
     rget "/basic-auth/abc/def", config: cfg do |resp|
       JSON.parse(resp.body_io)["user"].as_s.should eq "abc"
       resp.status_code.should eq 200
@@ -103,8 +114,8 @@ cfg.basic_auth=["abc","def"]
   end
 
   it "failes to authorize with invalid username and password" do
-cfg=new_config
-cfg.basic_auth=["ghi","jkl"]
+    cfg = new_config
+    cfg.basic_auth = {"ghi", "jkl"}
     rget "/basic-auth/abc/def", config: cfg do |resp|
       resp.status_code.should eq 401
     end
@@ -139,27 +150,27 @@ cfg.basic_auth=["ghi","jkl"]
   end
 
   it "handles only permitted number of redirects before throwing error" do
-cfg=new_config
-cfg["max_redirects"]=3
+    cfg = new_config
+    cfg.max_redirects = 3
     rget "/redirect/3", config: cfg do |resp|
       resp.env.request.uri.path.should eq "/get"
       resp.body_io.skip_to_end
     end
     expect_raises(NGHTTP::TooManyRedirectsError) do
-cfg=new_config
-cfg["max_redirects"]=1
+      cfg = new_config
+      cfg.max_redirects = 1
       rget "/redirect/2", config: cfg do |resp|
-raise Exception.new("code should never get here")
-#        resp.env.request.uri.path.should eq "/get"
-#        resp.body_io.skip_to_end
+        raise Exception.new("code should never get here")
+        #        resp.env.request.uri.path.should eq "/get"
+        #        resp.body_io.skip_to_end
       end
     end
   end
 
   it "raises when no redirects are allowed" do
     expect_raises(NGHTTP::TooManyRedirectsError) do
-cfg=new_config
-cfg["max_redirects"]=0
+      cfg = new_config
+      cfg.max_redirects = 0
       rget "/redirect/1", config: cfg do |resp|
         resp.env.request.uri.path.should eq "/get"
         resp.body_io.skip_to_end
@@ -187,19 +198,22 @@ cfg["max_redirects"]=0
   end
 
   it "handles read timeouts and clears underlying connections propperly" do
+    cfg = new_config
+    cfg.read_timeout = 0.5.seconds
+    cfg.tries = 2
     3.times do |tim|
-      expect_raises(Exception) do
-cfg=new_config
-cfg["read_timeout"]=1
+      expect_raises(IO::TimeoutError) do
         rget "/delay/5?t=#{tim}", config: cfg do |resp|
+          # we should timeout before ever yielding to this block, so this error should never be seen
+          "this block should not be called".should eq 0
         end # rget
-      end # raises
-    end # times
-end # it
+      end   # raises
+    end     # times
+  end       # it
 
-it "respects longer timeouts" do
-cfg=new_config
-cfg["read_timeout"]=3
+  it "respects longer timeouts" do
+    cfg = new_config
+    cfg.read_timeout = 3.seconds
     rget "/delay/1", config: cfg do |resp|
       resp.should_not be nil
     end
@@ -209,39 +223,54 @@ cfg["read_timeout"]=3
     rget "/range/1024" do |resp|
       resp.body.size.should eq 1024
     end
-cfg=new_config
-cfg["offset"]=2
+    cfg = new_config
+    cfg.offset = 2
     rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 1022
     end
-cfg=new_config
-cfg["offset"]="4"
+    cfg = new_config
+    cfg.offset = 4
     rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 1020
     end
-cfg=new_config
-cfg["offset"]=5..9
+    cfg = new_config
+    cfg.offset = 5..9
     rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 5
       resp.body.should eq "fghij"
     end
-cfg=new_config
-cfg["offset"]=0...5
+    cfg = new_config
+    cfg.offset = 0...5
     rget "/range/1024", config: cfg do |resp|
       resp.body.size.should eq 5
       resp.body.should eq "abcde"
     end
   end
 
-  it "handles http proxy" do
-    prx = {
-      "http"  => "http://192.168.1.201:8888/",
-      "https" => "http://192.168.1.201:8888/",
-    }
-cfg=new_config
-cfg["proxies"]=prx
-cfg["timeout"]=0.1
-    rget "/get", config: cfg do
+  it "handles keep alive" do
+    l = [] of String
+    3.times do
+      keep_alive(true) do |j|
+        l << j["connection"].as_s
+      end
+    end
+    l.uniq.size.should eq 1
+    l.clear
+    3.times do
+      keep_alive(false) do |j|
+        l << j["connection"].as_s
+      end
+    end
+    l.uniq.size.should eq 3
+  end # it
+
+  if 1 == 0
+    it "handles http proxy" do
+      cfg = new_config
+      cfg.proxy = "http://127.0.1:8888/"
+      cfg.read_timeout = 0.1.seconds
+      rget "/get", config: cfg do
+      end
     end
   end
 

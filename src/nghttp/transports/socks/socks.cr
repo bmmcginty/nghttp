@@ -74,9 +74,9 @@ module Socks
     getter! :socks
     getter socks_host, socks_port
 
-def write(data : Bytes) : Nil
-socks.write data
-end
+    def write(data : Bytes) : Nil
+      socks.write data
+    end
 
     delegate read, close, closed?, flush, peek, tty?, rewind, to: socks
 

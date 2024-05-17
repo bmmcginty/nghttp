@@ -4,14 +4,14 @@ module NGHTTP
     @plain_size : Int32 | Int64 = 0
 
     macro reset
-@eof = false
-@plain_buffer = Bytes.new(16384)
-@plain = Bytes.empty
-@plain_size = 0
-@encoded_buffer = Bytes.new(16384+8)
-@encoded = Bytes.empty
-@encoded_remaining = 0
-end
+      @eof = false
+      @plain_buffer = Bytes.new(16384)
+      @plain = Bytes.empty
+      @plain_size = 0
+      @encoded_buffer = Bytes.new(16384 + 8)
+      @encoded = Bytes.empty
+      @encoded_remaining = 0
+    end
 
     reset
 

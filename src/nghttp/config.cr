@@ -1,7 +1,18 @@
 require "./types"
+require "./http_env"
 
 class NGHTTP::Config
-macro hk(t)
+  @cfg = Hash(String, Bool |
+                      Int32 |
+                      Nil |
+                      String |
+                      Time::Span |
+                      Transport |
+                      Tuple(String, String) |
+                      Range(Int32, Int32)).new
+
+  # define typed setters and getters
+  macro hk(t)
 def {{t.var}}=(v : {{t.type}})
 @cfg[{{t.var.stringify}}]=v
 end
@@ -13,42 +24,30 @@ def {{t.var}}? : {{t.type}}?
 end
 end
 
-@cfg = Types::ConfigType.new
+  def _cfg
+    @cfg
+  end
 
-def _cfg
-@cfg
-end
+  def merge!(x : Config)
+    @cfg.merge! x._cfg
+  end
 
-def has_key?(k)
-@cfg.has_key?(k)
-end
-
-def merge!(x : Config)
-@cfg.merge! x._cfg
-end
-
-def merge!(x)
-@cfg.merge!(x)
-end
-
-def []?(k)
-@cfg[k]?
-end
-
-def []=(k,v)
-@cfg[k]=v
-end
-
-def [](k)
-@cfg[k]
-end
-
-def fetch(k)
-@cf.fetch(k)
-end
-
-def fetch(k,default)
-@cfg.fetch(k,default)
-end
-
+  hk verify : Bool
+  hk tries : Int32
+  hk max_redirects : Int32
+  hk debug_connect : Bool
+  hk debug_file : IO::FileDescriptor
+  hk tls : OpenSSL::SSL::Context::Client
+  hk wait : Time::Span
+  hk cache : Bool
+  hk cache_expires : Time::Span
+  hk cache_key : String
+  hk cache_statuses : Array(Int32)
+  hk basic_auth : Tuple(String, String)
+  hk offset : Range(Int32, Int32) | Int32
+  hk proxy : String
+  hk connections_per_host : Int32
+  hk connect_timeout : Time::Span
+  hk dns_timeout : Time::Span
+  hk read_timeout : Time::Span
 end # class
