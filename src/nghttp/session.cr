@@ -62,6 +62,9 @@ class NGHTTP::Session
     while tries >= 0
       tries -= 1
       env.state = HTTPEnv::State::Request
+if env.request.body_io?
+env.request.body_io.seek 0
+end
       begin
         env.response = new_response env
         start_handler.call env
@@ -117,7 +120,6 @@ class NGHTTP::Session
     req = Request.new
     req.method = method
     req.uri = URI.parse url
-    req.set_host_header
     req.headers.merge! @headers
     if headers
       req.headers.merge!(headers)

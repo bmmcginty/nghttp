@@ -161,8 +161,6 @@ describe Nghttp do
       cfg.max_redirects = 1
       rget "/redirect/2", config: cfg do |resp|
         raise Exception.new("code should never get here")
-        #        resp.env.request.uri.path.should eq "/get"
-        #        resp.body_io.skip_to_end
       end
     end
   end
@@ -273,6 +271,11 @@ describe Nghttp do
       end
     end
   end
+
+it "resends body on error" do
+# we should send a request, the server should timeout, and we should resend the same request
+1.should eq 0
+end
 
   #  it "works" do
   #    false.should eq(true)

@@ -4,6 +4,7 @@ require "./http_env"
 class NGHTTP::Config
   @cfg = Hash(String, Bool |
                       Int32 |
+IO |
                       Nil |
                       String |
                       Time::Span |
@@ -14,6 +15,21 @@ class NGHTTP::Config
   # define typed setters and getters
   macro hk(t)
 def {{t.var}}=(v : {{t.type}})
+@cfg[{{t.var.stringify}}]=v
+end
+def {{t.var}} : {{t.type}}
+@cfg[{{t.var.stringify}}].as({{t.type}})
+end
+def {{t.var}}? : {{t.type}}?
+@cfg[{{t.var.stringify}}]?.as({{t.type}}?)
+end
+end
+
+  macro hk_nilable(t)
+# allows for setting {{t.var}} to nil
+# e.g. if we go 307>302>200
+# post body must be explicitly removed after the 302 response
+def {{t.var}}=(v : {{t.type}}?)
 @cfg[{{t.var.stringify}}]=v
 end
 def {{t.var}} : {{t.type}}

@@ -24,16 +24,13 @@ class NGHTTP::Redirector
     resp = env.response
     method = "GET"
     sc = resp.status_code
+      new_body_io = nil
     if sc == 307
       method = env.request.method
-      new_body = nil
       if env.request.body_io?
-        new_body = env.request.body_io
-        if new_body.is_a?(IO)
-          new_body.seek 0
-        end
-      end
-    end
+        new_body_io = env.request.body_io
+      end # if body_io
+    end # if 307
     respurl = env.response.headers["location"]
     respuri = URI.parse(respurl)
     orig_uri = env.request.uri
@@ -41,6 +38,7 @@ class NGHTTP::Redirector
     env.int_config.redirect = true
     env.int_config.redirect_method = method
     env.int_config.redirect_url = nurl
+    env.int_config.redirect_body_io = new_body_io
     count = env.int_config.redirect_count?
     count = count ? count : 0
     count += 1
@@ -53,8 +51,7 @@ class NGHTTP::Redirector
       env.request.method = env.int_config.redirect_method.as(String)
       new_url = URI.parse env.int_config.redirect_url.as(String)
       env.request.uri = new_url
-      # TODO: remove this logic from Session class or move into another handler
-      env.request.set_host_header
+env.request.body_io=env.int_config.redirect_body_io
     end # if
   end
 

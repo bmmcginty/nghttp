@@ -11,6 +11,7 @@ module NGHTTP
       ContentEncoding,
       ContentLength,
       TransferEncoding,
+HostHeader,
       BodyPreparer,
       Cache,
       Wait,

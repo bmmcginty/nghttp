@@ -19,9 +19,12 @@ class NGHTTP::IntConfig < NGHTTP::Config
   hk proxy : String
   # Is this request generated from a redirect?
   hk redirect : Bool
-  # The methodused for the redirect.
+  # The method used for the redirect.
   # Only HTTP 307 is designed to possibly (re)-use the post method.
   hk redirect_method : String
+# the body used for the redirect
+# only HTTP 307 is designed to possibly have the body set
+hk_nilable redirect_body_io : IO
   # The new url.
   hk redirect_url : String
   # The number of redirections we have seen thus far.
