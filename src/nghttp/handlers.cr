@@ -13,6 +13,7 @@ module NGHTTP
       TransferEncoding,
 HostHeader,
       BodyPreparer,
+CustomHeaders,
       Cache,
       Wait,
       HTTPConnecter,

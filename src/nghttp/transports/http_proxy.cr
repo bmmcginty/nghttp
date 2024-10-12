@@ -12,8 +12,9 @@ module NGHTTP
       @rawsocket = s
       if @https_proxy
         ctx = OpenSSL::SSL::Context::Client.new
-        # support verify=0 in proxy_uri.params
-        #          ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+        if proxy_uri.query_params["verify"]?=="0"
+            ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+        end
         s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: proxy_uri.host.not_nil!, sync_close: true
       end # if https
       # https over an http proxy
@@ -38,7 +39,11 @@ module NGHTTP
           raise Exception.new("HTTP Proxy returned HTTP error #{parts[1]} when connecting to #{origin}:#{port}")
         end
         #        tls = @tls.as(OpenSSL::SSL::Context::Client)
-        t = OpenSSL::SSL::Socket::Client.new s, hostname: env.request.uri.host, sync_close: true
+        ctx = OpenSSL::SSL::Context::Client.new
+if env.config.verify? == false
+            ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+end
+        t = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host, sync_close: true
         @socket = t
       else
         @socket = s

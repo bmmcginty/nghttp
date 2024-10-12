@@ -1,4 +1,4 @@
-class NGHTTP::BodyPreparer
+class NGHTTP::CustomHeaders
   include Handler
   @after_me = ["BodySender"]
 
@@ -13,8 +13,8 @@ class NGHTTP::BodyPreparer
   end # def
 
   def handle_request(env)
-    if env.request.body_io?
-      env.request.headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
-    end # if
+    if env.request.custom_headers.size>0
+env.request.headers.merge! env.request.custom_headers
+end # if
   end   # def
 end     # class

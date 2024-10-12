@@ -176,6 +176,18 @@ describe Nghttp do
     end
   end
 
+it "handles redirects" do
+#t=s.post("http://localhost:5000/redirect-to",params={"url":"/post","status_code":"307"},data={"test":"test2"})
+jpost "/redirect-to?url=/anything/post&status_code=307", body: "a=b" do |j|
+j["method"].as_s.should eq "POST"
+j["form"]["a"].as_s.should eq "b"
+end # do
+jpost "/redirect-to?url=/anything/get&status_code=302", body: "a=b" do |j|
+j["method"].as_s.should eq "GET"
+j["form"].as_h.size.should eq 0
+end # do
+end # it
+
   it "handles gzipped content" do
     jget "/gzip" do |j|
       j["gzipped"].as_bool.should eq true

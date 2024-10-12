@@ -29,4 +29,13 @@ hk_nilable redirect_body_io : IO
   hk redirect_url : String
   # The number of redirections we have seen thus far.
   hk redirect_count : Int32
+
+# if a value from hk above is not reset in this method,
+# it should be explicitly cleared in a handle_request method of a handler.
+# Otherwise, previous requests could taint redirected requests.
+def reset
+%w(proxy port origin discard_cache transport from_cache to_cache).each do |k|
+@cfg.delete k
 end
+end # def
+end # class

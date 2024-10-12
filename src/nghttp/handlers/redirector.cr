@@ -50,8 +50,11 @@ class NGHTTP::Redirector
       env.int_config.redirect = false
       env.request.method = env.int_config.redirect_method.as(String)
       new_url = URI.parse env.int_config.redirect_url.as(String)
+if new_url.path==""
+new_url.path="/"
+end
       env.request.uri = new_url
-env.request.body_io=env.int_config.redirect_body_io
+env.request.body_io=env.int_config.redirect_body_io?
     end # if
   end
 

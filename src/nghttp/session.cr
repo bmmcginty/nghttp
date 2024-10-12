@@ -40,6 +40,7 @@ class NGHTTP::Session
     @headers.add "User-Agent", "Crystal"
     @headers.add "Accept", "*/*"
     @headers.add "Connection", "keep-alive"
+    @config.tries = 3
     @config.max_redirects = 3
     @config.connections_per_host = 1
     setup_handlers Handlers.default
@@ -57,14 +58,12 @@ class NGHTTP::Session
     err = nil
     env = new_env config
     env.request = new_request method: method, url: url, params: params, body: body, headers: headers
-    tries = env.config.tries?
-    tries = tries ? tries.as(Int32) : 3
+    tries = env.config.tries
     while tries >= 0
       tries -= 1
       env.state = HTTPEnv::State::Request
-if env.request.body_io?
-env.request.body_io.seek 0
-end
+env.request.reset
+env.int_config.reset
       begin
         env.response = new_response env
         start_handler.call env
@@ -120,9 +119,9 @@ end
     req = Request.new
     req.method = method
     req.uri = URI.parse url
-    req.headers.merge! @headers
+    req.custom_headers.merge! @headers
     if headers
-      req.headers.merge!(headers)
+      req.custom_headers.merge!(headers)
     end
     if params
       enc_p = HTTP::Params.encode params

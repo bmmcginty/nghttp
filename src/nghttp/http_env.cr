@@ -83,11 +83,10 @@ module NGHTTP
 
     def config
       @config
-      # Wrapper.new @config
     end
   end # class
 
-  class Wrapper
+  class XWrapper
     @cls : Types::ConfigType
 
     def initialize(@cls)
