@@ -28,7 +28,7 @@ abstract class NGHTTP::Transport
 
   def release
     queue.send self
-    sleep 0
+    sleep 0.seconds
   end
 
   def close(ignore_errors = false)
