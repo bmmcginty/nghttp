@@ -41,7 +41,8 @@ class NGHTTP::FSCache < NGHTTP::Cacher
     @hd.reset
     @hd.update(path)
     t = @hd.final.hexstring[0..1]
-    t = "#{@root}/#{t}/#{path}.#{method}"
+    rev_domain = parts[1].split(".").reverse.join(".")
+    t = "#{@root}/#{rev_domain}/#{t}/#{path}.#{method}"
     if cache_key
       t = "#{t}.#{cache_key}"
     end
