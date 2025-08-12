@@ -28,12 +28,17 @@ class NGHTTP::HTTPConnecter
     # if no proxies, use SimpleConnection
     proxy = proxy ? proxy : "direct:///"
     env.int_config.proxy = proxy
+    do_connect = false
     env.connection = if env.int_config.transport?
-                       env.int_config.transport.connect env
+                       do_connect = true
                        env.int_config.transport
                      else
-                       env.session.connection_manager.get env
+                       conn, do_connect = env.session.connection_manager.get env
+                       conn
                      end
+    if do_connect
+      env.connection.connect env
+    end
     setup_socket_debug env
   end
 

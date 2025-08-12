@@ -2,7 +2,8 @@ class NGHTTP::ConnectionManager
   @all = Hash(String, Channel(Transport)).new
   @connections_per_host = 1
 
-  # return an endpoint, AKA a connected socket or open file
+  # return an endpoint and a needs_connect flag
+  # if needs_connect is true, call connect outside this function
   def get(env : HTTPEnv)
     proxy = URI.parse env.int_config.proxy
     proxy_proto = proxy.scheme.not_nil!
@@ -40,7 +41,8 @@ class NGHTTP::ConnectionManager
       create_transport_queue env, key, cls
     end
     conn = @all[key].receive
-    connect env, conn
+    do_connect = prep_connect env, conn
+    {conn, do_connect}
   end
 
   def create_transport_queue(env, key, cls)
@@ -53,21 +55,16 @@ class NGHTTP::ConnectionManager
     end
   end
 
-  def connect(env, conn)
+  def prep_connect(env, conn)
     connect_timeout = env.config.connect_timeout?
     conn.connect_timeout = connect_timeout ? connect_timeout : 2.seconds
     read_timeout = env.config.read_timeout?
     conn.read_timeout = read_timeout ? read_timeout : 30.seconds
-    if conn.no_socket?
-      conn.connect env
-    elsif conn.closed?
-      conn.connect env
-    elsif conn.require_reconnect?
+    ret = conn.no_socket? || conn.closed? || conn.require_reconnect?
+    if conn.require_reconnect?
       conn.close true
-      conn.connect env
-    else
-    end # if
-    conn
+    end
+    ret
   end # def
 
 end # class
