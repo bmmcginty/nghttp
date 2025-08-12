@@ -102,7 +102,7 @@ struct JSON::Any
     (t && t.raw) ? t : nil
   end
 
-  def each
+  def each(&)
     case object = @raw
     when Array
       object.each do |i|
@@ -142,7 +142,7 @@ class XML::Node
     t
   end
 
-  def iter
+  def iter(&)
     xpath_nodes(".//*|.//text()").each do |i|
       yield i
     end

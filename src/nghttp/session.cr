@@ -52,7 +52,8 @@ class NGHTTP::Session
     params,
     body,
     headers,
-    config
+    config,
+    &
   )
     ret = nil
     err = nil
@@ -62,8 +63,8 @@ class NGHTTP::Session
     while tries >= 0
       tries -= 1
       env.state = HTTPEnv::State::Request
-env.request.reset
-env.int_config.reset
+      env.request.reset
+      env.int_config.reset
       begin
         env.response = new_response env
         start_handler.call env
@@ -114,7 +115,7 @@ env.int_config.reset
     url,
     params,
     body,
-    headers
+    headers,
   )
     req = Request.new
     req.method = method

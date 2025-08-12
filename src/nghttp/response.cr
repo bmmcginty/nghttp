@@ -130,7 +130,7 @@ class NGHTTP::Response
     get_boundary
   end
 
-  def parts
+  def parts(&)
     HTTP::Multipart.parse body_io, get_boundary.not_nil! do |headers, io|
       yield headers, io
     end

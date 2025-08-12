@@ -13,13 +13,13 @@ class NGHTTP::HostHeader
   end # def
 
   def handle_request(env)
-uh=host_header(env.request.uri)
-rh=env.request.headers["Host"]?
-if rh && rh != uh
-puts "had #{rh} instead of #{uh}"
-end
-env.request.headers["Host"]=uh
-end # def
+    uh = host_header(env.request.uri)
+    rh = env.request.headers["Host"]?
+    if rh && rh != uh
+      puts "had #{rh} instead of #{uh}"
+    end
+    env.request.headers["Host"] = uh
+  end # def
 
   private def host_header(uri)
     hn = if uri.port == 80 && uri.scheme == "http"
@@ -31,7 +31,7 @@ end # def
          else
            "#{uri.host}:#{uri.port}"
          end
-hn
-end # def
+    hn
+  end # def
 
 end # class

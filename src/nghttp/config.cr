@@ -4,7 +4,7 @@ require "./http_env"
 class NGHTTP::Config
   @cfg = Hash(String, Bool |
                       Int32 |
-IO |
+                      IO |
                       Nil |
                       String |
                       Time::Span |

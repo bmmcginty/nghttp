@@ -13,8 +13,8 @@ class NGHTTP::CustomHeaders
   end # def
 
   def handle_request(env)
-    if env.request.custom_headers.size>0
-env.request.headers.merge! env.request.custom_headers
-end # if
+    if env.request.custom_headers.size > 0
+      env.request.headers.merge! env.request.custom_headers
+    end # if
   end   # def
 end     # class

@@ -9,15 +9,15 @@ class NGHTTP::Request
 
   property http_version, uri
   setter body_io
-getter! body_io
+  getter! body_io
   getter method, custom_headers, headers
 
-def reset
-@headers.clear
-if body_io?
-body_io.seek 0
-end
-end
+  def reset
+    @headers.clear
+    if body_io?
+      body_io.seek 0
+    end
+  end
 
   def method=(s : String)
     @method = s.upcase
@@ -26,5 +26,4 @@ end
   def url
     @uri.to_s
   end
-
 end

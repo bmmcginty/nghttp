@@ -10,10 +10,10 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
     s.read_timeout = @read_timeout
     if env.request.uri.scheme == "https"
       @rawsocket = s
-        ctx = OpenSSL::SSL::Context::Client.new
-if env.config.verify? == false
-            ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
-end
+      ctx = OpenSSL::SSL::Context::Client.new
+      if env.config.verify? == false
+        ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+      end
       s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host.not_nil!, sync_close: true
     end
     @socket = s

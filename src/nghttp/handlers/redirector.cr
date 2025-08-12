@@ -24,13 +24,13 @@ class NGHTTP::Redirector
     resp = env.response
     method = "GET"
     sc = resp.status_code
-      new_body_io = nil
+    new_body_io = nil
     if sc == 307
       method = env.request.method
       if env.request.body_io?
         new_body_io = env.request.body_io
       end # if body_io
-    end # if 307
+    end   # if 307
     respurl = env.response.headers["location"]
     respuri = URI.parse(respurl)
     orig_uri = env.request.uri
@@ -50,11 +50,11 @@ class NGHTTP::Redirector
       env.int_config.redirect = false
       env.request.method = env.int_config.redirect_method.as(String)
       new_url = URI.parse env.int_config.redirect_url.as(String)
-if new_url.path==""
-new_url.path="/"
-end
+      if new_url.path == ""
+        new_url.path = "/"
+      end
       env.request.uri = new_url
-env.request.body_io=env.int_config.redirect_body_io?
+      env.request.body_io = env.int_config.redirect_body_io?
     end # if
   end
 
