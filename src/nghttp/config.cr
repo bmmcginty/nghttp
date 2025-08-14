@@ -2,7 +2,8 @@ require "./types"
 require "./http_env"
 
 class NGHTTP::Config
-  @cfg = Hash(String, Bool |
+  @cfg = Hash(String, Array(String) |
+                      Bool |
                       Int32 |
                       IO |
                       Nil |
@@ -48,6 +49,8 @@ end
     @cfg.merge! x._cfg
   end
 
+  # path(s) to extra (intermediate) CA certificates
+  hk ca_paths : Array(String)
   hk verify : Bool
   hk tries : Int32
   hk max_redirects : Int32
