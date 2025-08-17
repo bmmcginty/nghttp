@@ -40,7 +40,7 @@ abstract class NGHTTP::Transport
   end # def
 
   def closed?
-    socket.closed?
+    socket? && socket.closed?
   end
 
   def no_socket?

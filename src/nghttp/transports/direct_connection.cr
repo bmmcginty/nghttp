@@ -1,3 +1,8 @@
+lib LibC
+  MSG_PEEK     = 0x02
+  MSG_DONTWAIT = 0x40
+end
+
 class NGHTTP::DirectConnection < NGHTTP::Transport
   @rawsocket : TCPSocket? = nil
   @socket : SocketType? = nil
@@ -8,8 +13,8 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
     port = env.int_config.port.as(Int32)
     s = TCPSocket.new origin, port, @dns_timeout, @connect_timeout
     s.read_timeout = @read_timeout
+    @rawsocket = s
     if env.request.uri.scheme == "https"
-      @rawsocket = s
       ctx = OpenSSL::SSL::Context::Client.new
       if env.config.ca_paths?
         env.config.ca_paths.each { |i| ctx.ca_certificates = i }
@@ -23,13 +28,17 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
   end
 
   def broken? : Bool
-    broken = true
-    begin
-      socket.wait_readable 0.1.seconds
-    rescue e
-      broken = false
-    end # read?
-    broken
+    ret = true
+    if @rawsocket
+      rv = LibC.recv(@rawsocket.as(TCPSocket).fd, nil, 0, LibC::MSG_PEEK + LibC::MSG_DONTWAIT)
+      # if conn is closed or we get an error that isn't eagain then we should close conn
+      if rv == 0 || (rv < 0 && !(Errno.value.ewouldblock? || Errno.value.eagain?))
+      else
+        ret = false
+      end
+      Errno.value = Errno::NONE
+    end
+    ret
   end
 
   def handle_request(env : HTTPEnv)
