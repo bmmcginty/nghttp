@@ -28,18 +28,22 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
   end
 
   def broken? : Bool
-    ret = true
+    ret = false
     if @rawsocket
       rv = LibC.recv(@rawsocket.as(TCPSocket).fd, nil, 0, LibC::MSG_PEEK + LibC::MSG_DONTWAIT)
       # if conn is closed or we get an error that isn't eagain then we should close conn
-      if rv == 0 || (rv < 0 && !(Errno.value.ewouldblock? || Errno.value.eagain?))
+      # we have data
+      if rv > 0
+        # we don't have data, and nonblocking socket gives egain or ewouldblock
+      elsif rv < 0 && (Errno.value.ewouldblock? || Errno.value.eagain?)
+        # anything else, 0 data returned or some other error
       else
-        ret = false
-      end
+        ret = true
+      end # if rv/errno
       Errno.value = Errno::NONE
-    end
+    end # if rawsocket
     ret
-  end
+  end # def
 
   def handle_request(env : HTTPEnv)
     Utils.request_to_http_io env

@@ -60,9 +60,13 @@ class NGHTTP::ConnectionManager
     conn.connect_timeout = connect_timeout ? connect_timeout : 2.seconds
     read_timeout = env.config.read_timeout?
     conn.read_timeout = read_timeout ? read_timeout : 30.seconds
-    ret = conn.no_socket? || conn.closed? || conn.require_reconnect? || conn.broken?
+    # if we have a fresh connection or no socket, a connect is required
+    ret = conn.no_socket? || conn.closed?
+    # if we have a broken socket or a socket marked as non-keep-alive, make sure we close it entirely before continuing
+    # this connection will also have to be reopened, so set ret accordingly
     if conn.require_reconnect? || conn.broken?
       conn.close true
+      ret = true
     end
     ret
   end # def
