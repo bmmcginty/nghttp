@@ -35,7 +35,7 @@ end
 end
 {% end %}
 
-def keep_alive(alive : Bool)
+def keep_alive(alive : Bool, &)
   headers = HTTP::Headers.new
   if alive == false
     headers["Connection"] = "close"
@@ -176,17 +176,17 @@ describe Nghttp do
     end
   end
 
-it "handles redirects" do
-#t=s.post("http://localhost:5000/redirect-to",params={"url":"/post","status_code":"307"},data={"test":"test2"})
-jpost "/redirect-to?url=/anything/post&status_code=307", body: "a=b" do |j|
-j["method"].as_s.should eq "POST"
-j["form"]["a"].as_s.should eq "b"
-end # do
-jpost "/redirect-to?url=/anything/get&status_code=302", body: "a=b" do |j|
-j["method"].as_s.should eq "GET"
-j["form"].as_h.size.should eq 0
-end # do
-end # it
+  it "handles redirects" do
+    # t=s.post("http://localhost:5000/redirect-to",params={"url":"/post","status_code":"307"},data={"test":"test2"})
+    jpost "/redirect-to?url=/anything/post&status_code=307", body: "a=b" do |j|
+      j["method"].as_s.should eq "POST"
+      j["form"]["a"].as_s.should eq "b"
+    end # do
+    jpost "/redirect-to?url=/anything/get&status_code=302", body: "a=b" do |j|
+      j["method"].as_s.should eq "GET"
+      j["form"].as_h.size.should eq 0
+    end # do
+  end   # it
 
   it "handles gzipped content" do
     jget "/gzip" do |j|
@@ -284,10 +284,10 @@ end # it
     end
   end
 
-it "resends body on error" do
-# we should send a request, the server should timeout, and we should resend the same request
-1.should eq 0
-end
+  it "resends body on error" do
+    # we should send a request, the server should timeout, and we should resend the same request
+    1.should eq 0
+  end
 
   #  it "works" do
   #    false.should eq(true)
