@@ -95,6 +95,16 @@ describe Nghttp do
     end
   end
 
+  it "posts raw json data" do
+    a = "{\"abc\":\"def\"}"
+    m = IO::Memory.new a.to_slice
+    hh = HTTP::Headers.new
+    hh["Content-Type"] = "application/json"
+    jpost "/post", headers: hh, body: m do |j|
+      j["data"].should eq a
+    end
+  end
+
   it "posts with data and qs" do
     a = "testabcd=efg"
     m = IO::Memory.new a.to_slice
@@ -257,6 +267,7 @@ describe Nghttp do
     end
   end
 
+  # nginx will return a connection counter, and for keep alive requests, the same number and counter should be used for all requests
   it "handles keep alive" do
     l = [] of String
     3.times do
