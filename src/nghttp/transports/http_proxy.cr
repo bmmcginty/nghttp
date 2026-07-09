@@ -24,7 +24,12 @@ module NGHTTP
       if env.request.uri.scheme == "https"
         origin = env.int_config.origin
         port = env.int_config.port
-        s << "CONNECT #{origin}:#{port} HTTP/1.1\r\nHost: #{origin}\r\n\r\n"
+        s << "CONNECT #{origin}:#{port} HTTP/1.1\r\n"
+        s << "Host: #{origin}:#{port}\r\n"
+        if auth_header = proxy_authorization_header(env, proxy_uri)
+          s << "Proxy-Authorization: #{auth_header}\r\n"
+        end
+        s << "\r\n"
         s.flush
         rs = s.gets
         rh = [] of String
@@ -57,16 +62,30 @@ module NGHTTP
     end   # def
 
     def handle_request(env)
-      useLongUrl = if env.request.uri.scheme == "https"
-                     true
-                   else
-                     false
-                   end
+      useLongUrl = env.request.uri.scheme == "http"
+
+      # if we're an http url, add creds here instead of in a connect method
+      if useLongUrl
+        proxy_uri = URI.parse env.int_config.proxy
+        proxy_auth = proxy_authorization_header(env, proxy_uri)
+        env.request.headers["Proxy-Authorization"] = proxy_auth if proxy_auth
+      end
+
       Utils.request_to_http_io env, useLongUrl
+
       if env.request.body_io?
         IO.copy(env.request.body_io, env.connection.socket)
         env.connection.socket.flush
       end
+    end
+
+    private def proxy_authorization_header(env, proxy_uri)
+      user = proxy_uri.user
+      return nil unless user
+
+      password = proxy_uri.password || ""
+      encoded = Base64.strict_encode("#{user}:#{password}")
+      "Basic #{encoded}"
     end
   end # class
 end   # module
