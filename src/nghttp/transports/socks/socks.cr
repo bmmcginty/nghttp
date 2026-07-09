@@ -49,7 +49,6 @@ class String
     end
     nil
   end # def
-
 end
 
 class IO

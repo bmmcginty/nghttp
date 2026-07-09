@@ -16,7 +16,6 @@ module NGHTTP::Errors
       @message = "This TransparentIO does not have an IO attached to the other end"
     end # def
   end   # class
-
-end # module
+end     # module
 
 require "./io/*"

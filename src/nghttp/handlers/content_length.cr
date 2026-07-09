@@ -38,5 +38,4 @@ class NGHTTP::ContentLength
       env.response.body_io = TransparentIO.new ExactSizeReader.new env.response.body_io, length
     end # if
   end   # def
-
-end # class
+end     # class

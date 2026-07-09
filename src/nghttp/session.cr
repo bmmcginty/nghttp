@@ -190,5 +190,4 @@ end #def
     end # each
     start_handler.verify_requirements
   end # def
-
-end # class
+end   # class

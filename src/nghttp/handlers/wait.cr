@@ -24,5 +24,4 @@ class NGHTTP::Wait
       sleep wait.not_nil!
     end # if
   end   # def
-
-end # class
+end     # class

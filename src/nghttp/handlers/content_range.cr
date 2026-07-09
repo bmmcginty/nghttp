@@ -25,5 +25,4 @@ class NGHTTP::ContentRange
       env.request.headers["Range"] = "bytes=#{offset.begin}-#{offset.end}"
     end # if offset
   end   # def
-
-end # class
+end     # class

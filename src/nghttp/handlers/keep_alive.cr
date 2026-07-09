@@ -23,5 +23,4 @@ class NGHTTP::KeepAlive
       env.connection.require_reconnect = false
     end # if
   end   # def
-
-end # class
+end     # class

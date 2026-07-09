@@ -41,5 +41,4 @@ class NGHTTP::ContentEncoding
       end # encoding
     end   # if we have a body
   end     # def
-
-end # class
+end       # class

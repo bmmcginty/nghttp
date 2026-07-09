@@ -70,5 +70,4 @@ class NGHTTP::ConnectionManager
     end
     ret
   end # def
-
-end # class
+end   # class

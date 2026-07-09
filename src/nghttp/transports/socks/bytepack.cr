@@ -145,8 +145,7 @@ class IO
       repeat_count = nil
     end # each_char
   end   # def
-
-end # class
+end     # class
 
 {% if 1 == 0 %}
   require "spec"

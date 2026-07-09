@@ -61,5 +61,4 @@ class NGHTTP::BodySender
       raise Exception.new("invalid type for files")
     end # if
   end   # def
-
-end # class
+end     # class

@@ -171,5 +171,4 @@ class NGHTTP::Cache
     end
     cacher.put_cache env
   end # def
-
-end # class
+end   # class

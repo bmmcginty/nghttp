@@ -14,5 +14,4 @@ class NGHTTP::Toggler
   def handle_request(env)
     env.state = HTTPEnv::State::Response
   end # def
-
-end # class
+end   # class

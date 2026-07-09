@@ -72,5 +72,4 @@ class NGHTTP::Redirector
     end
     setup_redirect env
   end # def
-
-end # class
+end   # class

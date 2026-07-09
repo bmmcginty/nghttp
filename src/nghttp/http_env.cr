@@ -124,5 +124,4 @@ module NGHTTP
       @cls.keys
     end
   end # class
-
-end # module
+end   # module

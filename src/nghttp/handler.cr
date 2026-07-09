@@ -77,6 +77,5 @@ module NGHTTP
       end
       et = Time.monotonic
     end # def
-
-  end # class
-end   # module
+  end   # class
+end     # module

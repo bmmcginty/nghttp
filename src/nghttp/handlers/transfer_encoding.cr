@@ -35,5 +35,4 @@ class NGHTTP::TransferEncoding
       env.response.body_io = TransparentIO.new ChunkDecoder.new env.response.body_io
     end # if
   end   # def
-
-end # class
+end     # class

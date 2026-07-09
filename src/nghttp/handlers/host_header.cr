@@ -33,5 +33,4 @@ class NGHTTP::HostHeader
          end
     hn
   end # def
-
-end # class
+end   # class
