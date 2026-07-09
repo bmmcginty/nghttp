@@ -71,11 +71,11 @@ module NGHTTP
         raise Exception.new("Env #{env} is neither in request or response state")
       end
       name = handler.class.to_s
-      st = Time.monotonic
+      st = Time.instant
       if handler
         handler.call(env)
       end
-      et = Time.monotonic
+      et = Time.instant
     end # def
   end   # class
 end     # module
