@@ -1,0 +1,17 @@
+$ Add managed spec server fixtures
+$ Require Crystal >= 1.20 and clear deprecation warnings
+$ Extract HTTP/1 wire protocol helpers
+$ Add a generic protocol interface
+$ Store selected protocol on transports
+$ Move HTTP/1 request and response handling into the protocol implementation
+$ Gate HTTP/1-specific handlers by protocol capabilities
+$ Add ALPN protocol selection scaffolding
+$ Gate the default keep-alive header by protocol
+$ Allow configured protocol selection before connection setup
+$ Include protocol in connection pool keys
+Choose whether HTTP/2 uses an existing Crystal/nghttp2 dependency or an in-repo implementation
+Add an HTTP/2-capable spec fixture
+Add an HTTP/2 protocol implementation with frames, HPACK, stream state, and flow control
+Register HTTP/2 in protocol selection and ALPN once the implementation exists
+Make response body IO lifecycle work for multiplexed HTTP/2 streams
+Audit proxy behavior for HTTP/2, especially CONNECT and TLS-over-proxy negotiation
