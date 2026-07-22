@@ -1,5 +1,6 @@
 require "http2/server"
 require "json"
+require "openssl"
 
 class H2FixtureHandler
   include HTTP::Handler
@@ -29,6 +30,9 @@ end
 
 host = "127.0.0.1"
 port = 0
+tls = false
+cert = ""
+key = ""
 
 ARGV.each_with_index do |arg, index|
   case arg
@@ -36,9 +40,22 @@ ARGV.each_with_index do |arg, index|
     host = ARGV[index + 1]
   when "--port"
     port = ARGV[index + 1].to_i
+  when "--tls"
+    tls = true
+  when "--cert"
+    cert = ARGV[index + 1]
+  when "--key"
+    key = ARGV[index + 1]
   end
 end
 
 server = HTTP::Server.new([H2FixtureHandler.new])
-server.bind_tcp(host, port)
+if tls
+  context = OpenSSL::SSL::Context::Server.new
+  context.certificate_chain = cert
+  context.private_key = key
+  server.bind_tls(host, port, context)
+else
+  server.bind_tcp(host, port)
+end
 server.listen

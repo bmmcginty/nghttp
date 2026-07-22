@@ -10,6 +10,8 @@ module SpecServers
   @@keep_alive_process : Process? = nil
   @@http2_url : String? = nil
   @@http2_process : Process? = nil
+  @@http2_tls_url : String? = nil
+  @@http2_tls_process : Process? = nil
 
   def self.httpbin_url
     if url = ENV["NGHTTP_SPEC_HTTPBIN_URL"]?
@@ -68,6 +70,32 @@ module SpecServers
     end
   end
 
+  def self.http2_tls_url
+    if url = ENV["NGHTTP_SPEC_HTTP2_TLS_URL"]?
+      return url
+    end
+
+    @@http2_tls_url ||= begin
+      port = free_port
+      process = Process.new(
+        "crystal",
+        [
+          "run", "#{__DIR__}/support/http2_server.cr", "--",
+          "--host", HOST,
+          "--port", port.to_s,
+          "--tls",
+          "--cert", "#{__DIR__}/support/certs/http2_server.crt",
+          "--key", "#{__DIR__}/support/certs/http2_server.key",
+        ],
+        output: Process::Redirect::Close,
+        error: Process::Redirect::Close
+      )
+      @@http2_tls_process = process
+      wait_for_port(port, 30.seconds)
+      "https://#{HOST}:#{port}"
+    end
+  end
+
   def self.free_port
     server = TCPServer.new(HOST, 0)
     server.local_address.as(Socket::IPAddress).port
@@ -93,6 +121,7 @@ module SpecServers
     stop(@@httpbin_process)
     stop(@@keep_alive_process)
     stop(@@http2_process)
+    stop(@@http2_tls_process)
   end
 
   private def self.stop(process : Process?)
