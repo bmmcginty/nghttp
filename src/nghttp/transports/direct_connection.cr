@@ -46,14 +46,10 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
   end # def
 
   def handle_request(env : HTTPEnv)
-    protocol.request_to_http_io env
-    if env.request.body_io?
-      IO.copy(env.request.body_io, env.connection.socket)
-      env.connection.socket.flush
-    end
+    protocol.handle_request env
   end
 
   def handle_response(env : HTTPEnv)
-    protocol.http_io_to_response env
+    protocol.handle_response env
   end
 end # class

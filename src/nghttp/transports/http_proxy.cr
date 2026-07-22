@@ -71,12 +71,7 @@ module NGHTTP
         env.request.headers["Proxy-Authorization"] = proxy_auth if proxy_auth
       end
 
-      protocol.request_to_http_io env, useLongUrl
-
-      if env.request.body_io?
-        IO.copy(env.request.body_io, env.connection.socket)
-        env.connection.socket.flush
-      end
+      protocol.handle_request env, useLongUrl
     end
 
     private def proxy_authorization_header(env, proxy_uri)

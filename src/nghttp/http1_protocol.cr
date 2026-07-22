@@ -14,6 +14,26 @@ module NGHTTP
       default.http_io_to_response(env, io)
     end
 
+    def self.handle_request(env, full_url = false)
+      default.handle_request(env, full_url)
+    end
+
+    def self.handle_response(env : HTTPEnv)
+      default.handle_response(env)
+    end
+
+    def handle_request(env, full_url = false)
+      request_to_http_io env, full_url
+      if env.request.body_io?
+        IO.copy(env.request.body_io, env.connection.socket)
+        env.connection.socket.flush
+      end
+    end
+
+    def handle_response(env : HTTPEnv)
+      http_io_to_response env
+    end
+
     def request_to_http_io(env, full_url = false, io = nil)
       req = env.request
       eurl = if full_url
