@@ -14,4 +14,4 @@ $ Add an HTTP/2-capable spec fixture
 $ Add an HTTP/2 protocol implementation with frames, HPACK, stream state, and flow control
 $ Register HTTP/2 in protocol selection and ALPN once the implementation exists
 $ Make response body IO lifecycle work for multiplexed HTTP/2 streams
-Audit proxy behavior for HTTP/2, especially CONNECT and TLS-over-proxy negotiation
+$ Audit proxy behavior for HTTP/2, especially CONNECT and TLS-over-proxy negotiation

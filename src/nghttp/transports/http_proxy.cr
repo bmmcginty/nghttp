@@ -18,9 +18,8 @@ module NGHTTP
         if proxy_uri.query_params["verify"]? == "0"
           ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
         end
-        configure_alpn ctx
+        ctx.alpn_protocol = HTTP1Protocol.default.alpn_id
         s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: proxy_uri.host.not_nil!, sync_close: true
-        select_alpn_protocol s
       end # if https
       # https over an http proxy
       if env.request.uri.scheme == "https"
@@ -67,6 +66,10 @@ module NGHTTP
 
     def handle_request(env)
       useLongUrl = env.request.uri.scheme == "http"
+
+      if useLongUrl && !protocol.is_a?(HTTP1Protocol)
+        raise UnsupportedProtocolError.new("HTTP/2 over forward HTTP proxies is not supported")
+      end
 
       # if we're an http url, add creds here instead of in a connect method
       if useLongUrl

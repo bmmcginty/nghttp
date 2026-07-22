@@ -74,6 +74,27 @@ describe NGHTTP::HttpProxy do
     end
   end
 
+  it "rejects HTTP/2 over forward HTTP proxies" do
+    session = NGHTTP::Session.new
+    env = session.new_env(nil)
+    env.request = session.new_request(
+      method: "GET",
+      url: "http://example.com/proxy-path",
+      params: nil,
+      body: nil,
+      headers: nil
+    )
+    env.int_config.proxy = "http://127.0.0.1:1/"
+    queue = Channel(NGHTTP::Transport).new(1)
+    transport = NGHTTP::HttpProxy.new(queue)
+    transport.protocol = NGHTTP::HTTP2Protocol.new
+    env.connection = transport
+
+    expect_raises(NGHTTP::UnsupportedProtocolError, /forward HTTP proxies/) do
+      transport.handle_request(env)
+    end
+  end
+
   it "sends proxy auth on CONNECT requests" do
     local_proxy do |server, port|
       received = Channel(Array(String)).new(1)
