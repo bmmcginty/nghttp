@@ -15,6 +15,16 @@ private def protocol_env(method = "GET", url = "http://example.com/path?q=1")
 end
 
 describe NGHTTP::HTTP1Protocol do
+  it "can be used through the generic protocol interface" do
+    protocol = NGHTTP::HTTP1Protocol.default.as(NGHTTP::Protocol)
+    env = protocol_env
+    io = IO::Memory.new
+
+    protocol.request_to_http_io(env, io: io)
+
+    io.to_s.lines[0].should eq "GET /path?q=1 HTTP/1.1"
+  end
+
   it "writes origin-form request targets by default" do
     env = protocol_env
     env.request.headers["Host"] = "example.com"

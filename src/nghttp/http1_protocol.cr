@@ -1,6 +1,20 @@
 module NGHTTP
-  class HTTP1Protocol
+  class HTTP1Protocol < Protocol
+    @@default = new
+
+    def self.default
+      @@default
+    end
+
     def self.request_to_http_io(env, full_url = false, io = nil)
+      default.request_to_http_io(env, full_url, io)
+    end
+
+    def self.http_io_to_response(env : HTTPEnv, io = nil)
+      default.http_io_to_response(env, io)
+    end
+
+    def request_to_http_io(env, full_url = false, io = nil)
       req = env.request
       eurl = if full_url
                req.uri.to_s
@@ -35,7 +49,7 @@ module NGHTTP
       c.flush
     end
 
-    def self.http_io_to_response(env : HTTPEnv, io = nil)
+    def http_io_to_response(env : HTTPEnv, io = nil)
       io = io ? io : env.connection.socket
       resp = env.response
       rh = resp.headers

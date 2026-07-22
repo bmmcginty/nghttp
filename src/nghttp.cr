@@ -10,6 +10,7 @@ require "xml"
 require "json"
 require "./nghttp/fixers"
 require "./nghttp/http_error"
+require "./nghttp/protocol"
 require "./nghttp/*"
 
 module Nghttp
