@@ -20,7 +20,7 @@ class NGHTTP::ConnectionManager
     env.int_config.origin = host
     env.int_config.port = port
     # We'll make cph connections per origin, even if that means we are making multiple connections to the same proxy.
-    key = "#{host}:#{port}:#{proxy.to_s}"
+    key = "#{host}:#{port}:#{proxy.to_s}:#{env.protocol.name}"
     if !@all[key]?
       cls = case proxy_proto
             when "direct"
