@@ -5,10 +5,20 @@ class NGHTTP::KeepAlive
   end
 
   def call(env : HTTPEnv)
+    if env.request?
+      handle_request env
+    end
     if env.response?
       handle_response env
     end
     call_next env
+  end
+
+  def handle_request(env)
+    return unless env.protocol.uses_connection_header?
+    return if env.request.headers["Connection"]?
+
+    env.request.headers["Connection"] = "keep-alive"
   end
 
   def handle_response(env)

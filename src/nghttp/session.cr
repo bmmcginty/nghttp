@@ -39,7 +39,6 @@ class NGHTTP::Session
   def initialize
     @headers.add "User-Agent", "Crystal"
     @headers.add "Accept", "*/*"
-    @headers.add "Connection", "keep-alive"
     @config.tries = 3
     @config.max_redirects = 3
     @config.connections_per_host = 1

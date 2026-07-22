@@ -71,6 +71,21 @@ describe "protocol-aware handlers" do
     env.request.body_io.should be_a(IO::Memory)
   end
 
+  it "adds default keep-alive only for protocols that use Connection headers" do
+    http1_env = handler_env
+    http1_env.int_config.protocol = NGHTTP::HTTP1Protocol.default
+
+    NGHTTP::KeepAlive.new.handle_request(http1_env)
+
+    http1_env.request.headers["Connection"].should eq "keep-alive"
+
+    non_http1_env = handler_env
+
+    NGHTTP::KeepAlive.new.handle_request(non_http1_env)
+
+    non_http1_env.request.headers["Connection"]?.should be_nil
+  end
+
   it "does not mark reconnect from Connection headers for protocols that do not use them" do
     env = handler_env
     queue = Channel(NGHTTP::Transport).new(1)
