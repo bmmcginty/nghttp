@@ -1,6 +1,7 @@
 abstract class NGHTTP::Transport
   @require_reconnect = false
   @queue : Channel(Transport)? = nil
+  @protocol : Protocol = HTTP1Protocol.default
   @dns_timeout = 2.seconds
   @connect_timeout = 5.seconds
   @read_timeout = 30.seconds
@@ -24,6 +25,7 @@ abstract class NGHTTP::Transport
   end
 
   setter read_timeout, connect_timeout, dns_timeout
+  property protocol
   getter! queue
 
   def release
