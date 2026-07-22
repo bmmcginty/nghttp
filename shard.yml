@@ -4,6 +4,11 @@ version: '0.1.12'
 authors:
   - Brandon McGinty-Carroll <bmmcginty@bmcginty.us>
 
+dependencies:
+  http2:
+    github: ysbaddaden/http2
+    commit: 20cb75e636a964df250a5e3e6e97e9b2cb47ed33
+
 crystal: ">= 1.20.0"
 
 license: MIT
