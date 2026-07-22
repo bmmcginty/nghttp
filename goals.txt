@@ -19,6 +19,7 @@ Final desired state: HTTP/2 works over TLS ALPN and h2c for common request and r
 $ Add HTTP/2 POST and request body coverage
 $ Add HTTPS ALPN HTTP/2 coverage
 $ Make HTTP2Protocol construction safe per transport and hard to reuse incorrectly
-Add HTTP/2 redirect, cookie, custom header, and auth coverage
+$ Add HTTP/2 redirect, cookie, custom header, and auth coverage
+Fix or isolate HTTP/2 Set-Cookie response handling that currently hangs with the selected shard
 Define and implement stream leasing for true HTTP/2 multiplexing
 Map HTTP/2 GOAWAY, RST_STREAM, and refused stream failures into library errors

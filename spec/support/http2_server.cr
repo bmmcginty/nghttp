@@ -1,4 +1,5 @@
 require "http2/server"
+require "base64"
 require "json"
 require "openssl"
 
@@ -17,14 +18,64 @@ class H2FixtureHandler
         "method" => request.method,
         "path"   => request.path,
       }.to_json
+    when "/headers"
+      response.headers["content-type"] = "application/json"
+      headers = {} of String => String
+      request.headers.each do |key, values|
+        headers[key] = values.join(", ")
+      end
+      response << {"headers" => headers}.to_json
     when "/echo"
       response.headers["content-type"] = request.headers["content-type"]? || "application/octet-stream"
       IO.copy(request.body.not_nil!, response)
+    when .starts_with?("/basic-auth/")
+      _empty, _basic_auth, user, password = request.path.split("/", 4)
+      expected = "Basic #{Base64.strict_encode("#{user}:#{password}")}"
+      if request.headers["authorization"]? == expected
+        response.headers["content-type"] = "application/json"
+        response << {"user" => user}.to_json
+      else
+        response.status_code = 401
+        response.headers["www-authenticate"] = "Basic"
+        response << "unauthorized"
+      end
+    when .starts_with?("/redirect/")
+      count = request.path.split("/").last.to_i
+      response.status_code = 302
+      response.headers["location"] = count <= 1 ? "/get" : "/redirect/#{count - 1}"
+    when "/cookies"
+      response.headers["content-type"] = "application/json"
+      response << {"cookies" => cookies(request.headers["cookie"]?)}.to_json
+    when "/cookies/set"
+      params = HTTP::Params.parse(request.query || "")
+      params.each do |key, value|
+        response.headers.add("set-cookie", "#{key}=#{value}; Path=/")
+      end
+      response.headers["content-type"] = "application/json"
+      response << "{}"
+    when "/cookies/delete"
+      params = HTTP::Params.parse(request.query || "")
+      params.each do |key, _value|
+        response.headers.add("set-cookie", "#{key}=; Max-Age=0; Path=/")
+      end
+      response.headers["content-type"] = "application/json"
+      response << "{}"
     else
       response.status_code = 404
       response.headers["content-type"] = "text/plain"
       response << "not found"
     end
+  end
+
+  private def cookies(header)
+    parsed = {} of String => String
+    return parsed unless header
+
+    header.split(";").each do |part|
+      key, value = part.strip.split("=", 2)
+      parsed[key] = value
+    end
+    parsed
   end
 end
 

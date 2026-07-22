@@ -39,6 +39,8 @@ module NGHTTP
           stream.send_data(buffer[0, size])
         end
         stream.send_data("", flags: HTTP2::Frame::Flags::END_STREAM)
+      else
+        stream.send_data("", flags: HTTP2::Frame::Flags::END_STREAM)
       end
     end
 
@@ -94,7 +96,7 @@ module NGHTTP
           break
         end
       end
-    rescue IO::Error
+    rescue IO::Error | HTTP2::ClientError
     end
 
     private def request_headers(env)
