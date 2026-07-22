@@ -1,5 +1,11 @@
 require "http2"
 
+class HTTP2::Connection
+  def disable_huffman_encoding : Nil
+    @hpack_encoder.default_huffman = false
+  end
+end
+
 module NGHTTP
   class HTTP2Protocol < Protocol
     def name : String
@@ -74,6 +80,7 @@ module NGHTTP
     private def http2_connection(env)
       @connection ||= begin
         connection = HTTP2::Connection.new(env.connection.socket, HTTP2::Connection::Type::CLIENT)
+        connection.disable_huffman_encoding
         connection.write_client_preface
         connection.write_settings
 

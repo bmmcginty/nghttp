@@ -85,7 +85,7 @@ describe NGHTTP::HTTP2Protocol do
     end
   end
 
-  pending "handles Set-Cookie response headers over HTTP/2" do
+  it "handles Set-Cookie response headers over HTTP/2" do
     session = NGHTTP::Session.new
 
     session.get("#{SpecServers.http2_url}/cookies/set?kn1=kv1", config: h2_config(session)) do |resp|
