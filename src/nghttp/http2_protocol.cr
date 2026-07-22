@@ -7,6 +7,9 @@ class HTTP2::Connection
 end
 
 module NGHTTP
+  class HTTP2Error < FatalError
+  end
+
   class HTTP2Protocol < Protocol
     def name : String
       "h2"
@@ -36,7 +39,7 @@ module NGHTTP
       connection = http2_connection(env)
       stream = connection.streams.create
       @streams[env.object_id] = stream
-      @requests[stream] = Channel(Nil).new
+      @requests[stream] = Channel(Exception?).new(1)
       stream.send_headers(request_headers(env))
 
       if env.request.body_io?
@@ -52,7 +55,9 @@ module NGHTTP
 
     def handle_response(env : HTTPEnv)
       stream = @streams.delete(env.object_id).not_nil!
-      @requests[stream].receive
+      if error = @requests[stream].receive
+        raise error
+      end
 
       env.response.http_version = "2"
       env.response.status_code = stream.headers[":status"]
@@ -74,7 +79,7 @@ module NGHTTP
     end
 
     @connection : HTTP2::Connection? = nil
-    @requests = {} of HTTP2::Stream => Channel(Nil)
+    @requests = {} of HTTP2::Stream => Channel(Exception?)
     @streams = {} of UInt64 => HTTP2::Stream
 
     private def http2_connection(env)
@@ -98,12 +103,30 @@ module NGHTTP
       while frame = connection.receive
         case frame.type
         when HTTP2::Frame::Type::HEADERS
-          @requests[frame.stream]?.try(&.send(nil))
+          signal_request(frame.stream, nil)
+        when HTTP2::Frame::Type::RST_STREAM
+          signal_request(frame.stream, HTTP2Error.new("HTTP/2 stream #{frame.stream.id} was reset"))
         when HTTP2::Frame::Type::GOAWAY
-          break
+          signal_all_requests(HTTP2Error.new("HTTP/2 connection received GOAWAY"))
+          return
         end
       end
-    rescue IO::Error | HTTP2::ClientError
+      signal_all_requests(HTTP2Error.new("HTTP/2 connection closed"))
+    rescue ex : IO::Error | IO::EOFError | HTTP2::Error
+      message = ex.message || ex.class.name
+      signal_all_requests(HTTP2Error.new("HTTP/2 connection failed: #{message}"))
+    end
+
+    private def signal_request(stream, error : Exception?) : Nil
+      @requests[stream]?.try(&.send(error))
+    rescue Channel::ClosedError
+    end
+
+    private def signal_all_requests(error : Exception) : Nil
+      @requests.each_value do |channel|
+        channel.send(error)
+      rescue Channel::ClosedError
+      end
     end
 
     private def request_headers(env)

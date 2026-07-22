@@ -6,6 +6,42 @@ private def h2_config(session)
   config
 end
 
+private def with_invalid_frame_server(&)
+  port = SpecServers.free_port
+  server = TCPServer.new(SpecServers::HOST, port)
+  done = Channel(Nil).new
+
+  spawn do
+    socket : TCPSocket? = nil
+    begin
+      socket = server.accept
+      preface = Bytes.new(24)
+      socket.read_fully(preface)
+      settings_header = Bytes.new(9)
+      socket.read_fully(settings_header)
+      settings_length = (settings_header[0].to_i << 16) | (settings_header[1].to_i << 8) | settings_header[2].to_i
+      socket.skip(settings_length) if settings_length > 0
+
+      socket.write(Bytes[0, 0, 0, 4, 0, 0, 0, 0, 0])
+      socket.flush
+      sleep 50.milliseconds
+      socket.write(Bytes[0, 0, 0, 1, 0, 0, 0, 0, 0])
+      socket.flush
+    ensure
+      socket.try(&.close)
+      done.send(nil)
+    end
+  end
+
+  yield "http://#{SpecServers::HOST}:#{port}"
+ensure
+  server.close if server
+  select
+  when done.not_nil!.receive
+  when timeout(1.second)
+  end
+end
+
 describe NGHTTP::HTTP2Protocol do
   it "performs GET requests over HTTP/2 prior knowledge" do
     session = NGHTTP::Session.new
@@ -94,6 +130,16 @@ describe NGHTTP::HTTP2Protocol do
 
     session.get("#{SpecServers.http2_url}/cookies", config: h2_config(session)) do |resp|
       JSON.parse(resp.body)["cookies"]["kn1"].should eq "kv1"
+    end
+  end
+
+  it "raises when the HTTP/2 receive loop fails before response headers" do
+    with_invalid_frame_server do |url|
+      session = NGHTTP::Session.new
+
+      expect_raises(NGHTTP::HTTP2Error, /connection failed/) do
+        session.get("#{url}/invalid-frame", config: h2_config(session)) { }
+      end
     end
   end
 end
