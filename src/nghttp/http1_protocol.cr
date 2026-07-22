@@ -22,6 +22,22 @@ module NGHTTP
       default.handle_response(env)
     end
 
+    def name : String
+      "http/1.1"
+    end
+
+    def uses_host_header? : Bool
+      true
+    end
+
+    def uses_connection_header? : Bool
+      true
+    end
+
+    def uses_transfer_encoding? : Bool
+      true
+    end
+
     def handle_request(env, full_url = false)
       request_to_http_io env, full_url
       if env.request.body_io?

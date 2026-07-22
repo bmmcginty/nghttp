@@ -9,6 +9,7 @@ class NGHTTP::Config
                       Nil |
                       String |
                       Time::Span |
+                      Protocol |
                       Transport |
                       Tuple(String, String) |
                       Range(Int32, Int32)).new

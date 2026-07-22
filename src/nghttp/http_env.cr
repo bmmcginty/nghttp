@@ -35,6 +35,16 @@ module NGHTTP
       @response.not_nil!
     end
 
+    def protocol
+      if conn = connection?
+        conn.protocol
+      elsif protocol = int_config.protocol?
+        protocol
+      else
+        HTTP1Protocol.default
+      end
+    end
+
     def initialize(@session)
     end
 

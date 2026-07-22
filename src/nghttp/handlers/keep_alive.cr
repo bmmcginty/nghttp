@@ -12,6 +12,8 @@ class NGHTTP::KeepAlive
   end
 
   def handle_response(env)
+    return unless env.protocol.uses_connection_header?
+
     rv = env.request.http_version
     rv = rv.to_f
     connheader = env.response.headers["Connection"]?

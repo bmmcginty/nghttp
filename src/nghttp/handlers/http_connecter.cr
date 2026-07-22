@@ -39,6 +39,7 @@ class NGHTTP::HTTPConnecter
     if do_connect
       env.connection.connect env
     end
+    env.int_config.protocol = env.connection.protocol
     setup_socket_debug env
   end
 

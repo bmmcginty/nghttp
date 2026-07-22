@@ -13,6 +13,8 @@ class NGHTTP::HostHeader
   end # def
 
   def handle_request(env)
+    return unless env.protocol.uses_host_header?
+
     uh = host_header(env.request.uri)
     rh = env.request.headers["Host"]?
     if rh && rh != uh

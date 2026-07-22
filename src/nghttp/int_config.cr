@@ -10,6 +10,8 @@ class NGHTTP::IntConfig < NGHTTP::Config
   # set this flag. We might not have a full or accurate response to cache,
   # and we'd rather discard and refetch.
   hk discard_cache : Bool
+  # The wire protocol selected for this request.
+  hk protocol : Protocol
   # The hostname of the destination web server.
   hk origin : String
   # The port of the destination web server.

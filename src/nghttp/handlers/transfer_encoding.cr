@@ -15,6 +15,8 @@ class NGHTTP::TransferEncoding
   end
 
   def handle_request(env)
+    return unless env.protocol.uses_transfer_encoding?
+
     if env.request.body_io?
       if !env.request.headers["Content-Length"]?
         env.request.headers["Transfer-Encoding"] = "chunked"
@@ -24,6 +26,8 @@ class NGHTTP::TransferEncoding
   end     # def
 
   def handle_response(env)
+    return unless env.protocol.uses_transfer_encoding?
+
     if env.request.method == "HEAD"
       return
     end
