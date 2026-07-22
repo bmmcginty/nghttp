@@ -70,6 +70,7 @@ module NGHTTP
         values.each { |value| env.response.headers.add(key, value) }
       end
       env.response.body_io = TransparentIO.new stream.data, close_underlying_io: false
+      env.connection.release
     ensure
       @requests.delete(stream) if stream
     end

@@ -40,7 +40,7 @@ class NGHTTP::ConnectionManager
             end
       create_transport_queue env, key, cls
     end
-    conn = @all[key].receive
+    conn = @all[key].receive.acquire
     do_connect = prep_connect env, conn
     {conn, do_connect}
   end

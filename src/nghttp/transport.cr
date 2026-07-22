@@ -1,5 +1,6 @@
 abstract class NGHTTP::Transport
   @require_reconnect = false
+  @released = true
   @queue : Channel(Transport)? = nil
   @protocol : Protocol = HTTP1Protocol.default
   @dns_timeout = 2.seconds
@@ -28,7 +29,15 @@ abstract class NGHTTP::Transport
   property protocol
   getter! queue
 
+  def acquire
+    @released = false
+    self
+  end
+
   def release
+    return if @released
+
+    @released = true
     queue.send self
     sleep 0.seconds
   end

@@ -24,5 +24,7 @@ $ Fix or isolate HTTP/2 Set-Cookie response handling that currently hangs with t
 $ Disable shard HPACK Huffman client encoding so valid HTTP/2 paths do not trigger COMPRESSION_ERROR
 $ Convert HTTP/2 receive-loop errors into request failures instead of hangs
 $ Expose protocol multiplexing capability before adding stream leases
+$ Make transport release idempotent so stream leases can return connections early
+$ Release HTTP/2 transports after response headers so concurrent streams can share a connection
 Define and implement stream leasing for true HTTP/2 multiplexing
 Map HTTP/2 GOAWAY, RST_STREAM, and refused stream failures into library errors

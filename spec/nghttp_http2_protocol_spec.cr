@@ -133,6 +133,36 @@ describe NGHTTP::HTTP2Protocol do
     end
   end
 
+  it "can start another HTTP/2 request while the first response body is still open" do
+    session = NGHTTP::Session.new
+    config = h2_config(session)
+    config.connections_per_host = 1
+
+    session.get("#{SpecServers.http2_url}/get", config: config) do |first|
+      result = Channel(String | Exception).new
+
+      spawn do
+        begin
+          session.get("#{SpecServers.http2_url}/get", config: config) do |second|
+            result.send(JSON.parse(second.body)["path"].as_s)
+          end
+        rescue ex
+          result.send(ex)
+        end
+      end
+
+      select
+      when value = result.receive
+        raise value if value.is_a?(Exception)
+        value.should eq "/get"
+      when timeout(2.seconds)
+        fail "timed out waiting for nested HTTP/2 request"
+      end
+
+      JSON.parse(first.body)["path"].should eq "/get"
+    end
+  end
+
   it "raises when the HTTP/2 receive loop fails before response headers" do
     with_invalid_frame_server do |url|
       session = NGHTTP::Session.new
