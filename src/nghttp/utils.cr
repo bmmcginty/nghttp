@@ -15,7 +15,7 @@ module NGHTTP
     end # def
 
     macro ts
-      # t=Time.monotonic
+      # t=Time.instant
     end
 
     macro te(msg)

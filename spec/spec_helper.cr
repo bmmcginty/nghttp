@@ -55,15 +55,15 @@ module SpecServers
   end
 
   def self.wait_for_port(port)
-    deadline = Time.monotonic + 5.seconds
+    deadline = Time.instant + 5.seconds
     loop do
       begin
         socket = TCPSocket.new(HOST, port, connect_timeout: 0.1)
         socket.close
         return
       rescue
-        raise "Timed out waiting for spec server on #{HOST}:#{port}" if Time.monotonic > deadline
-        sleep 0.05
+        raise "Timed out waiting for spec server on #{HOST}:#{port}" if Time.instant > deadline
+        sleep 50.milliseconds
       end
     end
   end
