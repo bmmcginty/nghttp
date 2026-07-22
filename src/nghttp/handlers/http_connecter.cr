@@ -37,7 +37,7 @@ class NGHTTP::HTTPConnecter
                        conn
                      end
     if protocol = env.config.protocol?
-      env.connection.protocol = protocol
+      env.connection.protocol = protocol.new_connection_protocol
     end
     if do_connect
       env.connection.connect env

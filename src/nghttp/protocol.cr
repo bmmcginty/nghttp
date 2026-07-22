@@ -13,6 +13,10 @@ module NGHTTP
     abstract def request_to_http_io(env, full_url = false, io = nil)
     abstract def http_io_to_response(env : HTTPEnv, io = nil)
 
+    def new_connection_protocol : Protocol
+      self
+    end
+
     def self.for_alpn(protocol : String?)
       case protocol
       when nil, "", "http/1.1"

@@ -22,6 +22,10 @@ module NGHTTP
       false
     end
 
+    def new_connection_protocol : Protocol
+      HTTP2Protocol.new
+    end
+
     def handle_request(env, full_url = false)
       connection = http2_connection(env)
       stream = connection.streams.create

@@ -99,4 +99,26 @@ describe "configured protocols" do
     transport.protocol.should be protocol
     env.int_config.protocol.should be protocol
   end
+
+  it "uses fresh configured HTTP/2 protocol instances for transports" do
+    session = NGHTTP::Session.new
+    configured_protocol = NGHTTP::HTTP2Protocol.new
+    transport = ConfigTransport.new
+    env = session.new_env(nil)
+    env.config.protocol = configured_protocol
+    env.int_config.transport = transport
+    env.request = session.new_request(
+      method: "GET",
+      url: "http://example.com/",
+      params: nil,
+      body: nil,
+      headers: nil
+    )
+
+    NGHTTP::HTTPConnecter.new.ensure_transport(env)
+
+    transport.protocol.should be_a NGHTTP::HTTP2Protocol
+    transport.protocol.should_not be configured_protocol
+    env.int_config.protocol.should be transport.protocol
+  end
 end
