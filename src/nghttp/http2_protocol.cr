@@ -1,0 +1,139 @@
+require "http2"
+
+module NGHTTP
+  class HTTP2Protocol < Protocol
+    def name : String
+      "h2"
+    end
+
+    def alpn_id : String
+      "h2"
+    end
+
+    def uses_host_header? : Bool
+      false
+    end
+
+    def uses_connection_header? : Bool
+      false
+    end
+
+    def uses_transfer_encoding? : Bool
+      false
+    end
+
+    def handle_request(env, full_url = false)
+      connection = http2_connection(env)
+      stream = connection.streams.create
+      @streams[env.object_id] = stream
+      @requests[stream] = Channel(Nil).new
+      stream.send_headers(request_headers(env))
+
+      if env.request.body_io?
+        buffer = Bytes.new(16384)
+        while (size = env.request.body_io.read(buffer)) > 0
+          stream.send_data(buffer[0, size])
+        end
+        stream.send_data("", flags: HTTP2::Frame::Flags::END_STREAM)
+      end
+    end
+
+    def handle_response(env : HTTPEnv)
+      stream = @streams.delete(env.object_id).not_nil!
+      @requests[stream].receive
+
+      env.response.http_version = "2"
+      env.response.status_code = stream.headers[":status"]
+      stream.headers.each do |key, values|
+        next if key.starts_with?(":")
+        values.each { |value| env.response.headers.add(key, value) }
+      end
+      env.response.body_io = TransparentIO.new stream.data, close_underlying_io: false
+    ensure
+      @requests.delete(stream) if stream
+    end
+
+    def request_to_http_io(env, full_url = false, io = nil)
+      raise UnsupportedProtocolError.new("HTTP/2 does not use HTTP/1 request serialization")
+    end
+
+    def http_io_to_response(env : HTTPEnv, io = nil)
+      raise UnsupportedProtocolError.new("HTTP/2 does not use HTTP/1 response parsing")
+    end
+
+    @connection : HTTP2::Connection? = nil
+    @requests = {} of HTTP2::Stream => Channel(Nil)
+    @streams = {} of UInt64 => HTTP2::Stream
+
+    private def http2_connection(env)
+      @connection ||= begin
+        connection = HTTP2::Connection.new(env.connection.socket, HTTP2::Connection::Type::CLIENT)
+        connection.write_client_preface
+        connection.write_settings
+
+        frame = connection.receive
+        unless frame.try(&.type) == HTTP2::Frame::Type::SETTINGS
+          raise UnsupportedProtocolError.new("Expected HTTP/2 SETTINGS frame")
+        end
+
+        spawn receive_frames(connection)
+        connection
+      end
+    end
+
+    private def receive_frames(connection)
+      while frame = connection.receive
+        case frame.type
+        when HTTP2::Frame::Type::HEADERS
+          @requests[frame.stream]?.try(&.send(nil))
+        when HTTP2::Frame::Type::GOAWAY
+          break
+        end
+      end
+    rescue IO::Error
+    end
+
+    private def request_headers(env)
+      uri = env.request.uri
+      headers = HTTP::Headers{
+        ":method"    => env.request.method,
+        ":scheme"    => uri.scheme.not_nil!,
+        ":authority" => authority(uri),
+        ":path"      => path_and_query(uri),
+      }
+      env.request.headers.each do |key, values|
+        next if key.starts_with?(":")
+        next if skip_header?(key)
+        values.each { |value| headers.add(key.downcase, value) }
+      end
+      headers
+    end
+
+    private def authority(uri)
+      if port = uri.port
+        "#{uri.host}:#{port}"
+      else
+        uri.host.not_nil!
+      end
+    end
+
+    private def path_and_query(uri)
+      path = uri.path
+      path = "/" if path.nil? || path.empty?
+      if query = uri.query
+        "#{path}?#{query}"
+      else
+        path
+      end
+    end
+
+    private def skip_header?(key)
+      case key.downcase
+      when "connection", "host", "keep-alive", "proxy-connection", "transfer-encoding", "upgrade"
+        true
+      else
+        false
+      end
+    end
+  end
+end

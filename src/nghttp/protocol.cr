@@ -17,6 +17,8 @@ module NGHTTP
       case protocol
       when nil, "", "http/1.1"
         HTTP1Protocol.default
+      when "h2"
+        HTTP2Protocol.new
       else
         raise UnsupportedProtocolError.new("Unsupported negotiated protocol #{protocol}")
       end

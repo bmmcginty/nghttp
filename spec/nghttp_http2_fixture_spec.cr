@@ -54,6 +54,7 @@ private class ManagedH2Client
         @requests[frame.stream]?.try(&.send(nil))
       end
     end
+  rescue IO::Error
   end
 end
 

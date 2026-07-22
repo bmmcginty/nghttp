@@ -10,9 +10,13 @@ describe NGHTTP::Protocol do
     NGHTTP::Protocol.for_alpn("http/1.1").should be NGHTTP::HTTP1Protocol.default
   end
 
+  it "maps h2 ALPN to an HTTP/2 protocol" do
+    NGHTTP::Protocol.for_alpn("h2").should be_a NGHTTP::HTTP2Protocol
+  end
+
   it "raises for unsupported negotiated protocols" do
-    expect_raises(NGHTTP::UnsupportedProtocolError, /h2/) do
-      NGHTTP::Protocol.for_alpn("h2")
+    expect_raises(NGHTTP::UnsupportedProtocolError, /test-unsupported/) do
+      NGHTTP::Protocol.for_alpn("test-unsupported")
     end
   end
 end
