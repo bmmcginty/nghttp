@@ -84,4 +84,16 @@ describe NGHTTP::HTTP2Protocol do
       cookies["kn2"].should eq "kv2"
     end
   end
+
+  pending "handles Set-Cookie response headers over HTTP/2" do
+    session = NGHTTP::Session.new
+
+    session.get("#{SpecServers.http2_url}/cookies/set?kn1=kv1", config: h2_config(session)) do |resp|
+      resp.body
+    end
+
+    session.get("#{SpecServers.http2_url}/cookies", config: h2_config(session)) do |resp|
+      JSON.parse(resp.body)["cookies"]["kn1"].should eq "kv1"
+    end
+  end
 end
