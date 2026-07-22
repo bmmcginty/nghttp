@@ -10,7 +10,7 @@ $ Gate the default keep-alive header by protocol
 $ Allow configured protocol selection before connection setup
 $ Include protocol in connection pool keys
 $ Choose whether HTTP/2 uses an existing Crystal/nghttp2 dependency or an in-repo implementation
-Add an HTTP/2-capable spec fixture
+$ Add an HTTP/2-capable spec fixture
 Add an HTTP/2 protocol implementation with frames, HPACK, stream state, and flow control
 Register HTTP/2 in protocol selection and ALPN once the implementation exists
 Make response body IO lifecycle work for multiplexed HTTP/2 streams
