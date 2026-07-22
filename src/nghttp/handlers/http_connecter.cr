@@ -36,6 +36,9 @@ class NGHTTP::HTTPConnecter
                        conn, do_connect = env.session.connection_manager.get env
                        conn
                      end
+    if protocol = env.config.protocol?
+      env.connection.protocol = protocol
+    end
     if do_connect
       env.connection.connect env
     end

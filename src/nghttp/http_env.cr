@@ -40,6 +40,8 @@ module NGHTTP
         conn.protocol
       elsif protocol = int_config.protocol?
         protocol
+      elsif protocol = config.protocol?
+        protocol
       else
         HTTP1Protocol.default
       end

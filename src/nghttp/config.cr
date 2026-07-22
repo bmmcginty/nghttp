@@ -64,6 +64,7 @@ end
   hk cache_key : String
   hk cache_statuses : Array(Int32)
   hk basic_auth : Tuple(String, String)
+  hk protocol : Protocol
   hk offset : Range(Int32, Int32) | Int32
   hk proxy : String
   hk connections_per_host : Int32
