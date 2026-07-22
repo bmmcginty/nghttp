@@ -17,6 +17,10 @@ module NGHTTP
       self
     end
 
+    def multiplexed? : Bool
+      false
+    end
+
     def self.for_alpn(protocol : String?)
       case protocol
       when nil, "", "http/1.1"

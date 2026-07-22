@@ -14,6 +14,11 @@ describe NGHTTP::Protocol do
     NGHTTP::Protocol.for_alpn("h2").should be_a NGHTTP::HTTP2Protocol
   end
 
+  it "exposes whether a protocol can multiplex requests" do
+    NGHTTP::HTTP1Protocol.default.multiplexed?.should be_false
+    NGHTTP::HTTP2Protocol.new.multiplexed?.should be_true
+  end
+
   it "raises for unsupported negotiated protocols" do
     expect_raises(NGHTTP::UnsupportedProtocolError, /test-unsupported/) do
       NGHTTP::Protocol.for_alpn("test-unsupported")

@@ -31,6 +31,10 @@ module NGHTTP
       false
     end
 
+    def multiplexed? : Bool
+      true
+    end
+
     def new_connection_protocol : Protocol
       HTTP2Protocol.new
     end
