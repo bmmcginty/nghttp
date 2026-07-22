@@ -31,15 +31,10 @@ end
 
 ## Testing
 
-Clone httpbin.
-`git clone https://github.com/bmmcginty/httpbin`
-Add to nginx.conf for keep-alive testing:
-```
-location /conn {
-default_type application/json;
-return 200 '{"connection": "$connection", "connection_requests": "$connection_requests", "connection_time": "$connection_time"}';
-}
-```
+The spec suite starts a local Python httpbin process by default.
+Set `NGHTTP_SPEC_HTTPBIN_URL` to use an already-running httpbin server instead.
+Set `NGHTTP_SPEC_KEEP_ALIVE_URL` to use an already-running keep-alive test server.
+
 See `spec/nghttp_spec.cr`.
 
 ## Development

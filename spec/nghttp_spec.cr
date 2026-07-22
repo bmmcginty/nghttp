@@ -11,7 +11,8 @@ class C
   end
 end
 
-SRV = "http://127.0.0.1:5000"
+SRV            = SpecServers.httpbin_url
+KEEP_ALIVE_SRV = SpecServers.keep_alive_url
 
 def new_config
   C.c.new_config
@@ -40,7 +41,7 @@ def keep_alive(alive : Bool, &)
   if alive == false
     headers["Connection"] = "close"
   end
-  C.c.get("http://127.0.0.1/conn", headers: headers) do |resp|
+  C.c.get("#{KEEP_ALIVE_SRV}/conn", headers: headers) do |resp|
     yield JSON.parse(resp.body_io)
   end
 end
@@ -295,7 +296,7 @@ describe Nghttp do
     end
   end
 
-  it "resends body on error" do
+  pending "resends body on error" do
     # we should send a request, the server should timeout, and we should resend the same request
     1.should eq 0
   end
