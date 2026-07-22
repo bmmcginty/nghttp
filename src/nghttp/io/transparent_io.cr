@@ -6,12 +6,17 @@ module NGHTTP
     @on_write : Writer?
     @on_read : Reader?
     @on_close : Closer?
-    @io : TCPSocket | OpenSSL::SSL::Socket::Client | TransparentIO
+    @io : IO
     @close_underlying_io : Bool
     property io, close_underlying_io
 
     def wait_readable(t)
-      @io.wait_readable t
+      case io = @io
+      when TransparentIO
+        io.wait_readable t
+      else
+        raise IO::Error.new("#{io.class} does not support wait_readable")
+      end
     end
 
     def to_s(io : IO)
@@ -56,7 +61,12 @@ module NGHTTP
     end
 
     def rewind
-      @io.rewind
+      case io = @io
+      when IO::Memory, ChunkEncoder, TransparentIO
+        io.rewind
+      else
+        raise IO::Error.new("#{io.class} does not support rewind")
+      end
     end
 
     def read(slice : Bytes)
@@ -90,7 +100,7 @@ module NGHTTP
       @io.flush
     end
 
-    def peek
+    def peek : Bytes?
       @io.peek
     end
 
