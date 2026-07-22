@@ -18,7 +18,9 @@ module NGHTTP
         if proxy_uri.query_params["verify"]? == "0"
           ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
         end
+        configure_alpn ctx
         s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: proxy_uri.host.not_nil!, sync_close: true
+        select_alpn_protocol s
       end # if https
       # https over an http proxy
       if env.request.uri.scheme == "https"
@@ -54,7 +56,9 @@ module NGHTTP
         if env.config.verify? == false
           ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
         end
+        configure_alpn ctx
         t = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host, sync_close: true
+        select_alpn_protocol t
         @socket = t
       else
         @socket = s

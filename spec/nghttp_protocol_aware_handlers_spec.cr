@@ -5,6 +5,10 @@ private class NonHTTP1Protocol < NGHTTP::Protocol
     "test/non-http1"
   end
 
+  def alpn_id : String
+    "test/non-http1"
+  end
+
   def uses_host_header? : Bool
     false
   end

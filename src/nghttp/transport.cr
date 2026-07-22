@@ -48,6 +48,14 @@ abstract class NGHTTP::Transport
   def no_socket?
     @socket == nil
   end
+
+  def configure_alpn(ctx : OpenSSL::SSL::Context::Client)
+    ctx.alpn_protocol = protocol.alpn_id
+  end
+
+  def select_alpn_protocol(socket : OpenSSL::SSL::Socket::Client)
+    self.protocol = Protocol.for_alpn(socket.alpn_protocol)
+  end
 end # class
 
 require "./transports/*"

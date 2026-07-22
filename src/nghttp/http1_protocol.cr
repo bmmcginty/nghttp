@@ -26,6 +26,10 @@ module NGHTTP
       "http/1.1"
     end
 
+    def alpn_id : String
+      "http/1.1"
+    end
+
     def uses_host_header? : Bool
       true
     end

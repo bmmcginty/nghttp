@@ -15,7 +15,10 @@ s=socks.socks
 @rawsocket=s
 s.read_timeout = @read_timeout
 if env.request.uri.scheme=="https"
-s=OpenSSL::SSL::Socket::Client.new s, hostname: env.request.uri.host.not_nil!, sync_close: true
+ctx=OpenSSL::SSL::Context::Client.new
+configure_alpn ctx
+s=OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host.not_nil!, sync_close: true
+select_alpn_protocol s
 end # if
 @socket=s
 end

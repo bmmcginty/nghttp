@@ -22,7 +22,9 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
       if env.config.verify? == false
         ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
       end
+      configure_alpn ctx
       s = OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host.not_nil!, sync_close: true
+      select_alpn_protocol s
     end
     @socket = s
   end
