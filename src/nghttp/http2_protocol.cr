@@ -110,7 +110,7 @@ module NGHTTP
         values.each { |value| env.response.headers.add(key, value) }
       end
       env.response.body_io = TransparentIO.new HTTP2BodyIO.new(stream, env.response), close_underlying_io: false
-      env.connection.release
+      env.connection.release if @connection.try(&.stream_capacity_available?)
     ensure
       @requests.delete(stream) if stream
     end

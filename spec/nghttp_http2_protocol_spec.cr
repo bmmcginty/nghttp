@@ -66,6 +66,16 @@ private def raw_frame(type, flags, stream_id, payload = Bytes.empty)
   frame.to_slice
 end
 
+private def read_raw_frame(socket)
+  header = Bytes.new(9)
+  socket.read_fully(header)
+  length = (header[0].to_i << 16) | (header[1].to_i << 8) | header[2].to_i
+  type = header[3].to_i
+  stream_id = ((header[5].to_i & 0x7f) << 24) | (header[6].to_i << 16) | (header[7].to_i << 8) | header[8].to_i
+  socket.skip(length) if length > 0
+  {type, stream_id}
+end
+
 private def with_invalid_frame_server(&)
   with_raw_frame_server(raw_frame(1, 0, 0)) do |url|
     yield url
@@ -134,6 +144,62 @@ private def with_http1_tls_alpn_server(&)
   yield "https://#{SpecServers::HOST}:#{port}"
 ensure
   server.close if server
+end
+
+private def with_max_concurrent_one_server(&)
+  port = SpecServers.free_port
+  server = TCPServer.new(SpecServers::HOST, port)
+  second_request_seen = Channel(Nil).new(1)
+  done = Channel(Nil).new
+
+  spawn do
+    socket : TCPSocket? = nil
+    begin
+      socket = server.accept
+      socket.read_fully(Bytes.new(24))
+      read_raw_frame(socket)
+      socket.write(raw_frame(4, 0, 0, Bytes[0, 3, 0, 0, 0, 1]))
+      socket.flush
+
+      loop do
+        type, stream_id = read_raw_frame(socket)
+        break if type == 1 && stream_id == 1
+      end
+
+      headers = HTTP2::HPACK::Encoder.new(huffman: false).encode(HTTP::Headers{
+        ":status"      => "200",
+        "content-type" => "text/plain",
+      })
+      socket.write(raw_frame(1, 4, 1, headers))
+      socket.flush
+
+      socket.read_timeout = 300.milliseconds
+      loop do
+        type, stream_id = read_raw_frame(socket)
+        if type == 1 && stream_id != 1
+          second_request_seen.send(nil)
+          break
+        end
+      end
+    rescue IO::TimeoutError
+      socket.try do |s|
+        s.write(raw_frame(0, 1, 1, "done".to_slice))
+        s.flush
+        sleep 50.milliseconds
+      end
+    ensure
+      socket.try(&.close)
+      done.send(nil)
+    end
+  end
+
+  yield "http://#{SpecServers::HOST}:#{port}", second_request_seen
+ensure
+  server.close if server
+  select
+  when done.not_nil!.receive
+  when timeout(1.second)
+  end
 end
 
 describe NGHTTP::HTTP2Protocol do
@@ -294,6 +360,32 @@ describe NGHTTP::HTTP2Protocol do
       end
 
       JSON.parse(first.body)["path"].should eq "/get"
+    end
+  end
+
+  it "does not lease another HTTP/2 stream past SETTINGS_MAX_CONCURRENT_STREAMS" do
+    with_max_concurrent_one_server do |url, second_request_seen|
+      session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.connections_per_host = 1
+      nested = Channel(Exception?).new(1)
+
+      session.get("#{url}/first", config: config) do
+        spawn do
+          begin
+            session.get("#{url}/second", config: config) { }
+            nested.send(nil)
+          rescue ex
+            nested.send(ex)
+          end
+        end
+
+        select
+        when second_request_seen.receive
+          fail "leased a second HTTP/2 stream despite SETTINGS_MAX_CONCURRENT_STREAMS=1"
+        when timeout(300.milliseconds)
+        end
+      end
     end
   end
 

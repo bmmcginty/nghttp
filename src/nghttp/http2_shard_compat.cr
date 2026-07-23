@@ -1,6 +1,16 @@
 require "http2"
 
 class HTTP2::Connection
+  def client? : Bool
+    @type.client?
+  end
+
+  def stream_capacity_available? : Bool
+    return true unless max = remote_settings.max_concurrent_streams
+
+    streams.active_count_for_stream_type(@type.client? ? 1 : 0) < max
+  end
+
   private def read_rst_stream_frame(frame)
     raise Error.frame_size_error unless frame.size == RST_STREAM_FRAME_SIZE
     error_code = Error::Code.new(io.read_bytes(UInt32, IO::ByteFormat::BigEndian))
@@ -51,6 +61,35 @@ class HTTP2::Connection
             raise Error.protocol_error("MALFORMED data frame")
           end
         end
+      end
+    end
+  end
+end
+
+class HTTP2::Streams
+  def create(state = Stream::State::IDLE) : Stream
+    @mutex.synchronize do
+      if max = @connection.remote_settings.max_concurrent_streams
+        if unsafe_active_count_for_stream_type(@connection.client? ? 1 : 0) >= max
+          raise Error.refused_stream("MAXIMUM outgoing stream capacity reached")
+        end
+      end
+      id = @id_counter += 2
+      raise Error.internal_error("STREAM #{id} already exists") if @streams[id]?
+      @streams[id] = Stream.new(@connection, id, state: state)
+    end
+  end
+
+  def active_count_for_stream_type(type) : Int32
+    @mutex.synchronize { unsafe_active_count_for_stream_type(type) }
+  end
+
+  private def unsafe_active_count_for_stream_type(type) : Int32
+    @streams.reduce(0) do |count, (_, stream)|
+      if stream.id != 0 && stream.id % 2 == type && stream.active?
+        count + 1
+      else
+        count
       end
     end
   end
