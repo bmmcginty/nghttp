@@ -6,7 +6,7 @@ private def h2_config(session)
   config
 end
 
-private def with_raw_frame_server(frame : Bytes, &)
+private def with_raw_frame_server(frames : Array(Bytes), &)
   port = SpecServers.free_port
   server = TCPServer.new(SpecServers::HOST, port)
   done = Channel(Nil).new
@@ -25,8 +25,11 @@ private def with_raw_frame_server(frame : Bytes, &)
       socket.write(Bytes[0, 0, 0, 4, 0, 0, 0, 0, 0])
       socket.flush
       sleep 50.milliseconds
-      socket.write(frame)
-      socket.flush
+      frames.each do |frame|
+        socket.write(frame)
+        socket.flush
+      end
+      sleep 50.milliseconds
     ensure
       socket.try(&.close)
       done.send(nil)
@@ -42,20 +45,41 @@ ensure
   end
 end
 
+private def with_raw_frame_server(frame : Bytes, &)
+  with_raw_frame_server([frame]) do |url|
+    yield url
+  end
+end
+
+private def raw_frame(type, flags, stream_id, payload = Bytes.empty)
+  frame = IO::Memory.new
+  frame.write_byte(((payload.size >> 16) & 0xff).to_u8)
+  frame.write_byte(((payload.size >> 8) & 0xff).to_u8)
+  frame.write_byte((payload.size & 0xff).to_u8)
+  frame.write_byte(type.to_u8)
+  frame.write_byte(flags.to_u8)
+  frame.write_byte(((stream_id >> 24) & 0x7f).to_u8)
+  frame.write_byte(((stream_id >> 16) & 0xff).to_u8)
+  frame.write_byte(((stream_id >> 8) & 0xff).to_u8)
+  frame.write_byte((stream_id & 0xff).to_u8)
+  frame.write(payload)
+  frame.to_slice
+end
+
 private def with_invalid_frame_server(&)
-  with_raw_frame_server(Bytes[0, 0, 0, 1, 0, 0, 0, 0, 0]) do |url|
+  with_raw_frame_server(raw_frame(1, 0, 0)) do |url|
     yield url
   end
 end
 
 private def with_goaway_server(&)
-  with_raw_frame_server(Bytes[0, 0, 8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]) do |url|
+  with_raw_frame_server(raw_frame(7, 0, 0, Bytes[0, 0, 0, 1, 0, 0, 0, 0])) do |url|
     yield url
   end
 end
 
 private def with_rst_stream_server(&)
-  with_raw_frame_server(Bytes[0, 0, 4, 3, 0, 0, 0, 0, 1, 0, 0, 0, 7]) do |url|
+  with_raw_frame_server(raw_frame(3, 0, 1, Bytes[0, 0, 0, 7])) do |url|
     yield url
   end
 end
@@ -64,16 +88,28 @@ private def with_headers_end_stream_server(&)
   payload = HTTP2::HPACK::Encoder.new(huffman: false).encode(HTTP::Headers{
     ":status" => "204",
   })
-  frame = IO::Memory.new
-  frame.write_byte(((payload.size >> 16) & 0xff).to_u8)
-  frame.write_byte(((payload.size >> 8) & 0xff).to_u8)
-  frame.write_byte((payload.size & 0xff).to_u8)
-  frame.write_byte(1_u8)
-  frame.write_byte(5_u8)
-  frame.write(Bytes[0, 0, 0, 1])
-  frame.write(payload)
 
-  with_raw_frame_server(frame.to_slice) do |url|
+  with_raw_frame_server(raw_frame(1, 5, 1, payload)) do |url|
+    yield url
+  end
+end
+
+private def with_trailers_server(&)
+  encoder = HTTP2::HPACK::Encoder.new(huffman: false)
+  headers = encoder.encode(HTTP::Headers{
+    ":status"      => "200",
+    "content-type" => "text/plain",
+  })
+  trailers = encoder.encode(HTTP::Headers{
+    "x-trailer" => "done",
+  })
+  frames = [
+    raw_frame(1, 4, 1, headers),
+    raw_frame(0, 0, 1, "hello".to_slice),
+    raw_frame(1, 5, 1, trailers),
+  ]
+
+  with_raw_frame_server(frames) do |url|
     yield url
   end
 end
@@ -298,6 +334,17 @@ describe NGHTTP::HTTP2Protocol do
       session.get("#{url}/empty", config: h2_config(session)) do |resp|
         resp.status_code.should eq 204
         resp.body.should eq ""
+      end
+    end
+  end
+
+  it "exposes HTTP/2 response trailers after reading the body" do
+    with_trailers_server do |url|
+      session = NGHTTP::Session.new
+
+      session.get("#{url}/trailers", config: h2_config(session)) do |resp|
+        resp.body.should eq "hello"
+        resp.trailers["x-trailer"].should eq "done"
       end
     end
   end

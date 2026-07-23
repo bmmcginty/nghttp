@@ -3,11 +3,12 @@ class NGHTTP::Response
   @status_code = 0
   @status_message = ""
   @headers = HTTP::Headers.new
+  @trailers = HTTP::Headers.new
   @body_io : TransparentIO? = nil
   @env : HTTPEnv | Nil = nil
   @saved_body : String? = nil
 
-  property http_version, status_code, status_message, headers, body_io
+  property http_version, status_code, status_message, headers, trailers, body_io
   setter env
 
   def env

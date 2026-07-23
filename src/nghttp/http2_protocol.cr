@@ -1,6 +1,39 @@
 require "http2"
 
 module NGHTTP
+  class HTTP2BodyIO < IO
+    def initialize(@stream : HTTP2::Stream, @response : Response)
+      @body = @stream.data
+      @trailers_merged = false
+    end
+
+    def read(slice : Bytes) : Int32
+      bytes_read = @body.read(slice)
+      merge_trailers if bytes_read == 0
+      bytes_read
+    end
+
+    def write(slice : Bytes) : Nil
+      raise IO::Error.new("HTTP/2 response bodies are not writable")
+    end
+
+    def close : Nil
+      @body.close
+      merge_trailers
+    end
+
+    private def merge_trailers : Nil
+      return if @trailers_merged
+
+      if trailers = @stream.trailers?
+        trailers.each do |key, values|
+          values.each { |value| @response.trailers.add(key, value) }
+        end
+      end
+      @trailers_merged = true
+    end
+  end
+
   class HTTP2Error < FatalError
   end
 
@@ -76,7 +109,7 @@ module NGHTTP
         next if key.starts_with?(":")
         values.each { |value| env.response.headers.add(key, value) }
       end
-      env.response.body_io = TransparentIO.new stream.data, close_underlying_io: false
+      env.response.body_io = TransparentIO.new HTTP2BodyIO.new(stream, env.response), close_underlying_io: false
       env.connection.release
     ensure
       @requests.delete(stream) if stream
