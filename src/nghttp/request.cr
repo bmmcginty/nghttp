@@ -6,16 +6,26 @@ class NGHTTP::Request
   @method = "GET"
   @http_version = "1.1"
   @body_io : IO? = nil
+  @base_body_io : IO? = nil
 
   property http_version, uri
-  setter body_io
   getter! body_io
   getter method, custom_headers, headers
 
+  def body_io=(io : IO?)
+    @body_io = io
+    @base_body_io = io
+  end
+
+  def prepared_body_io=(io : IO?)
+    @body_io = io
+  end
+
   def reset
     @headers.clear
-    if body_io?
-      body_io.seek 0
+    @body_io = @base_body_io
+    if body_io = @body_io
+      body_io.rewind
     end
   end
 

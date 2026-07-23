@@ -46,6 +46,106 @@ def keep_alive(alive : Bool, &)
   end
 end
 
+class RewindableSpecBody < IO
+  def initialize(body : String)
+    @io = IO::Memory.new(body)
+  end
+
+  def read(slice : Bytes)
+    @io.read(slice)
+  end
+
+  def write(slice : Bytes) : Nil
+    raise IO::Error.new("read only")
+  end
+
+  def rewind
+    @io.rewind
+  end
+end
+
+def read_spec_request_body(socket : TCPSocket)
+  socket.gets("\r\n").should_not be_nil
+  headers = HTTP::Headers.new
+
+  while line = socket.gets("\r\n")
+    break if line == "\r\n"
+
+    key, value = line.chomp.split(":", 2)
+    headers.add(key, value.strip)
+  end
+
+  body = IO::Memory.new
+  if headers["Transfer-Encoding"]?.try(&.downcase.includes?("chunked"))
+    loop do
+      size_line = socket.gets("\r\n").not_nil!.strip
+      size = size_line.split(';', 2)[0].to_i(16)
+      break if size == 0
+
+      chunk = Bytes.new(size)
+      socket.read_fully(chunk)
+      body.write(chunk)
+      socket.read_fully(Bytes.new(2))
+    end
+
+    while line = socket.gets("\r\n")
+      break if line == "\r\n"
+    end
+  elsif content_length = headers["Content-Length"]?
+    chunk = Bytes.new(content_length.to_i)
+    socket.read_fully(chunk)
+    body.write(chunk)
+  end
+
+  body.to_s
+end
+
+def with_retry_body_server(&)
+  port = SpecServers.free_port
+  server = TCPServer.new(SpecServers::HOST, port)
+  bodies = Channel(String).new(2)
+  done = Channel(Exception?).new
+
+  spawn do
+    begin
+      2.times do |i|
+        socket = server.accept
+        begin
+          body = read_spec_request_body(socket)
+          bodies.send(body)
+
+          if i == 0
+            socket.close
+          else
+            socket << "HTTP/1.1 200 OK\r\n"
+            socket << "Content-Length: #{body.bytesize}\r\n"
+            socket << "Connection: close\r\n"
+            socket << "\r\n"
+            socket << body
+            socket.flush
+          end
+        ensure
+          socket.close unless socket.closed?
+        end
+      end
+      done.send(nil)
+    rescue ex
+      done.send(ex)
+    end
+  end
+
+  yield "http://#{SpecServers::HOST}:#{port}", bodies
+
+  select
+  when err = done.receive
+    raise err if err
+  when timeout 2.seconds
+    raise "retry body server did not finish"
+  end
+ensure
+  server.close if server && !server.closed?
+end
+
 describe Nghttp do
   it "gets ip" do
     jget "ip" do |t|
@@ -296,9 +396,20 @@ describe Nghttp do
     end
   end
 
-  pending "resends body on error" do
-    # we should send a request, the server should timeout, and we should resend the same request
-    1.should eq 0
+  it "resends body on error" do
+    with_retry_body_server do |url, bodies|
+      cfg = new_config
+      cfg.tries = 1
+      cfg.read_timeout = 0.5.seconds
+      body = "retry=this-body"
+
+      C.c.post("#{url}/retry", body: RewindableSpecBody.new(body), config: cfg) do |resp|
+        resp.body_io.gets_to_end.should eq body
+      end
+
+      bodies.receive.should eq body
+      bodies.receive.should eq body
+    end
   end
 
   #  it "works" do

@@ -20,7 +20,7 @@ class NGHTTP::TransferEncoding
     if env.request.body_io?
       if !env.request.headers["Content-Length"]?
         env.request.headers["Transfer-Encoding"] = "chunked"
-        env.request.body_io = TransparentIO.new ChunkEncoder.new env.request.body_io
+        env.request.prepared_body_io = TransparentIO.new ChunkEncoder.new env.request.body_io
       end # if no content-length
     end   # if body
   end     # def

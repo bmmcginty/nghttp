@@ -43,3 +43,4 @@ $ Add HTTP/2 trailer handling and coverage
 $ Add HTTP/2 flow-control and large-body stress coverage
 $ Handle graceful HTTP/2 GOAWAY drain for new requests on reused connections
 $ Add broader HTTP/2 interoperability specs against an external server
+$ Resend rewindable request bodies unchanged after retryable transport errors
