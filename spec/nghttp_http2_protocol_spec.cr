@@ -60,6 +60,24 @@ private def with_rst_stream_server(&)
   end
 end
 
+private def with_headers_end_stream_server(&)
+  payload = HTTP2::HPACK::Encoder.new(huffman: false).encode(HTTP::Headers{
+    ":status" => "204",
+  })
+  frame = IO::Memory.new
+  frame.write_byte(((payload.size >> 16) & 0xff).to_u8)
+  frame.write_byte(((payload.size >> 8) & 0xff).to_u8)
+  frame.write_byte((payload.size & 0xff).to_u8)
+  frame.write_byte(1_u8)
+  frame.write_byte(5_u8)
+  frame.write(Bytes[0, 0, 0, 1])
+  frame.write(payload)
+
+  with_raw_frame_server(frame.to_slice) do |url|
+    yield url
+  end
+end
+
 describe NGHTTP::HTTP2Protocol do
   it "performs GET requests over HTTP/2 prior knowledge" do
     session = NGHTTP::Session.new
@@ -207,6 +225,17 @@ describe NGHTTP::HTTP2Protocol do
 
       expect_raises(NGHTTP::HTTP2RefusedStreamError, /REFUSED_STREAM/) do
         session.get("#{url}/rst-stream", config: h2_config(session)) { }
+      end
+    end
+  end
+
+  it "handles HTTP/2 responses that end on the HEADERS frame" do
+    with_headers_end_stream_server do |url|
+      session = NGHTTP::Session.new
+
+      session.get("#{url}/empty", config: h2_config(session)) do |resp|
+        resp.status_code.should eq 204
+        resp.body.should eq ""
       end
     end
   end

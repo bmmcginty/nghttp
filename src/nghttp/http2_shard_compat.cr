@@ -11,6 +11,53 @@ class HTTP2::Connection
     frame.reset_error_code = error_code
     Log.trace { "  code=#{error_code}" }
   end
+
+  private def read_headers_frame(frame)
+    stream = frame.stream
+
+    read_padded(frame) do |size|
+      if frame.flags.priority?
+        exclusive, dep_stream_id = read_stream_id
+        raise Error.protocol_error("INVALID stream dependency") if stream.id == dep_stream_id
+        weight = read_byte.to_i32 + 1
+        stream.priority = Priority.new(exclusive == 1, dep_stream_id, weight)
+        Log.trace { "  #{stream.priority.debug}" }
+        size -= 5
+      end
+
+      if stream.data? && !frame.flags.end_stream?
+        raise Error.protocol_error("INVALID trailer part")
+      end
+
+      buffer = read_headers_payload(frame, size)
+
+      begin
+        if stream.data?
+          hpack_decoder.decode(buffer, stream.trailers)
+        else
+          hpack_decoder.decode(buffer, stream.headers)
+          if @type.server?
+            validate_request_headers(stream.headers)
+          else
+            validate_response_headers(stream.headers)
+          end
+        end
+      rescue ex : HPACK::Error
+        Log.trace { "HPACK::Error: #{ex.message}" }
+        raise Error.compression_error
+      end
+
+      if stream.data? || frame.flags.end_stream?
+        stream.data.close_write
+
+        if content_length = stream.headers["content-length"]?
+          unless content_length.to_i == stream.data.size
+            raise Error.protocol_error("MALFORMED data frame")
+          end
+        end
+      end
+    end
+  end
 end
 
 class HTTP2::Frame
