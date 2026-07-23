@@ -43,6 +43,13 @@ See `spec/nghttp_spec.cr`, `spec/nghttp_http2_protocol_spec.cr`, and `docs/http2
 
 Most code can be found in the handlers directory.
 
+## TODO
+
+- Define replayable vs one-shot request bodies so automatic retries can avoid resending non-rewindable upload streams.
+- Add specs for retry behavior with `String`, `IO::Memory`, `File`, custom rewindable IO, and non-rewindable streaming IO request bodies.
+- Add a body factory API for large replayable uploads, such as reopening a file per attempt instead of keeping one mutable IO object.
+- Make HTTP/2 upload streaming stop promptly when the stream receives an early error such as `REFUSED_STREAM`.
+
 ## Contributing
 
 1. Fork it ( https://github.com/bmmcginty/nghttp/fork )
