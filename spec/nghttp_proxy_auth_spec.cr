@@ -1,4 +1,5 @@
 require "./spec_helper"
+require "json"
 
 private def local_proxy(&)
   server = TCPServer.new("127.0.0.1", 0)
@@ -17,6 +18,59 @@ private def read_proxy_headers(client)
     lines << line
   end
   lines
+end
+
+private def local_connect_proxy(&)
+  done = Channel(Nil).new(1)
+
+  local_proxy do |server, port|
+    received = Channel(Array(String)).new(1)
+
+    spawn do
+      client : TCPSocket? = nil
+      upstream : TCPSocket? = nil
+      begin
+        client = server.accept
+        lines = read_proxy_headers(client)
+        received.send(lines)
+
+        target = lines[0].split(" ")[1]
+        host, port_text = target.split(":", 2)
+        upstream = TCPSocket.new(host, port_text.to_i)
+
+        client << "HTTP/1.1 200 Connection Established\r\n\r\n"
+        client.flush
+
+        pipe_done = Channel(Nil).new(2)
+        spawn do
+          IO.copy(client.not_nil!, upstream.not_nil!)
+        rescue
+        ensure
+          upstream.try(&.close)
+          pipe_done.send(nil)
+        end
+        spawn do
+          IO.copy(upstream.not_nil!, client.not_nil!)
+        rescue
+        ensure
+          client.try(&.close)
+          pipe_done.send(nil)
+        end
+        pipe_done.receive
+      ensure
+        client.try(&.close)
+        upstream.try(&.close)
+        done.send(nil)
+      end
+    end
+
+    yield "http://127.0.0.1:#{port}/", received
+  ensure
+    select
+    when done.receive
+    when timeout(1.second)
+    end
+  end
 end
 
 describe NGHTTP::HttpProxy do
@@ -122,6 +176,26 @@ describe NGHTTP::HttpProxy do
       lines[0].should eq "CONNECT example.com:443 HTTP/1.1"
       lines.should contain "Host: example.com:443"
       lines.should contain "Proxy-Authorization: Basic #{Base64.strict_encode("proxy-user:proxy-pass")}"
+    end
+  end
+
+  it "negotiates HTTP/2 over TLS through HTTP CONNECT proxies" do
+    local_connect_proxy do |proxy_url, received|
+      session = NGHTTP::Session.new
+      cfg = session.new_config
+      cfg.proxy = proxy_url
+      cfg.protocol = NGHTTP::HTTP2Protocol.new
+      cfg.verify = false
+      cfg.tries = 0
+
+      session.get("#{SpecServers.http2_tls_url}/get", config: cfg) do |resp|
+        resp.http_version.should eq "2"
+        resp.status_code.should eq 200
+        JSON.parse(resp.body)["path"].should eq "/get"
+      end
+
+      lines = received.receive
+      lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
     end
   end
 end

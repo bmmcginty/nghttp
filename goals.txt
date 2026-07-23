@@ -49,3 +49,4 @@ $ Document local http2-fork branches for upstream PR preparation
 $ Document CI guidance for opt-in external HTTP/2 interoperability specs
 $ Retry HTTP/2 REFUSED_STREAM failures on a fresh connection
 $ Complete focused HTTP/2 browser groundwork code review
+$ Cover HTTP/2 over TLS through HTTP CONNECT proxies
