@@ -73,6 +73,28 @@ private def local_connect_proxy(&)
   end
 end
 
+private def local_http1_tls_server(alpn_protocol : String?, response_body : String, &)
+  port = SpecServers.free_port
+  server = HTTP::Server.new do |context|
+    context.response.headers["content-type"] = "text/plain"
+    context.response << response_body
+  end
+  context = OpenSSL::SSL::Context::Server.new
+  context.certificate_chain = "#{__DIR__}/support/certs/http2_server.crt"
+  context.private_key = "#{__DIR__}/support/certs/http2_server.key"
+  context.alpn_protocol = alpn_protocol if alpn_protocol
+  server.bind_tls(SpecServers::HOST, port, context)
+
+  spawn do
+    server.listen
+  end
+  SpecServers.wait_for_port(port, 5.seconds)
+
+  yield "https://#{SpecServers::HOST}:#{port}"
+ensure
+  server.close if server
+end
+
 describe NGHTTP::HttpProxy do
   it "sends optional basic proxy auth on HTTP proxy requests" do
     local_proxy do |server, port|
@@ -196,6 +218,27 @@ describe NGHTTP::HttpProxy do
 
       lines = received.receive
       lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
+    end
+  end
+
+  it "falls back to HTTP/1.1 over HTTP CONNECT proxies when origin ALPN selects HTTP/1.1" do
+    local_http1_tls_server("http/1.1", "proxied http1 fallback") do |origin_url|
+      local_connect_proxy do |proxy_url, received|
+        session = NGHTTP::Session.new
+        cfg = session.new_config
+        cfg.proxy = proxy_url
+        cfg.protocol = NGHTTP::HTTP2Protocol.new
+        cfg.verify = false
+        cfg.tries = 0
+
+        session.get(origin_url, config: cfg) do |resp|
+          resp.http_version.should eq "1.1"
+          resp.body.should eq "proxied http1 fallback"
+        end
+
+        lines = received.receive
+        lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
+      end
     end
   end
 end
