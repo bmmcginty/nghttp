@@ -23,6 +23,7 @@ $ Advertise HTTP/1.1 fallback alongside h2 for TLS ALPN
 $ Cover HTTPS ALPN fallback to HTTP/1.1 when HTTP/2 is configured
 $ Reapply protocol-aware request headers after ALPN changes the selected protocol
 $ Serialize empty HTTP/1.1 origin-form paths as /
+$ Re-enable HTTP/2 client HPACK Huffman encoding after local decoder compatibility patch
 $ Add HTTP/2 POST and request body coverage
 $ Add HTTPS ALPN HTTP/2 coverage
 $ Make HTTP2Protocol construction safe per transport and hard to reuse incorrectly
