@@ -4,6 +4,17 @@ class HTTP2::Connection
   def disable_huffman_encoding : Nil
     @hpack_encoder.default_huffman = false
   end
+
+  private def read_rst_stream_frame(frame)
+    raise Error.frame_size_error unless frame.size == RST_STREAM_FRAME_SIZE
+    error_code = Error::Code.new(io.read_bytes(UInt32, IO::ByteFormat::BigEndian))
+    frame.reset_error_code = error_code
+    Log.trace { "  code=#{error_code}" }
+  end
+end
+
+class HTTP2::Frame
+  property reset_error_code : HTTP2::Error::Code?
 end
 
 module NGHTTP
@@ -14,6 +25,9 @@ module NGHTTP
   end
 
   class HTTP2StreamResetError < HTTP2Error
+  end
+
+  class HTTP2RefusedStreamError < HTTP2StreamResetError
   end
 
   class HTTP2Protocol < Protocol
@@ -116,7 +130,7 @@ module NGHTTP
         when HTTP2::Frame::Type::HEADERS
           signal_request(frame.stream, nil)
         when HTTP2::Frame::Type::RST_STREAM
-          signal_request(frame.stream, HTTP2StreamResetError.new("HTTP/2 stream #{frame.stream.id} was reset"))
+          signal_request(frame.stream, stream_reset_error(frame))
         when HTTP2::Frame::Type::GOAWAY
           signal_all_requests(HTTP2GoawayError.new("HTTP/2 connection received GOAWAY"))
           return
@@ -138,6 +152,15 @@ module NGHTTP
         channel.send(error)
       rescue Channel::ClosedError
       end
+    end
+
+    private def stream_reset_error(frame)
+      message = "HTTP/2 stream #{frame.stream.id} was reset"
+      if code = frame.reset_error_code
+        message = "#{message}: #{code}"
+        return HTTP2RefusedStreamError.new(message) if code.refused_stream?
+      end
+      HTTP2StreamResetError.new(message)
     end
 
     private def request_headers(env)

@@ -27,5 +27,6 @@ $ Expose protocol multiplexing capability before adding stream leases
 $ Make transport release idempotent so stream leases can return connections early
 $ Release HTTP/2 transports after response headers so concurrent streams can share a connection
 $ Map HTTP/2 GOAWAY and RST_STREAM frames to distinct library errors
+$ Expose HTTP/2 RST_STREAM error codes from the shard frame reader
 Define and implement stream leasing for true HTTP/2 multiplexing
-Map HTTP/2 GOAWAY, RST_STREAM, and refused stream failures into library errors
+$ Map HTTP/2 GOAWAY, RST_STREAM, and refused stream failures into library errors

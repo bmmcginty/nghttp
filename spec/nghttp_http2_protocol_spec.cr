@@ -201,11 +201,11 @@ describe NGHTTP::HTTP2Protocol do
     end
   end
 
-  it "raises a stream reset error when an HTTP/2 stream receives RST_STREAM before response headers" do
+  it "raises a refused stream error when an HTTP/2 stream receives REFUSED_STREAM before response headers" do
     with_rst_stream_server do |url|
       session = NGHTTP::Session.new
 
-      expect_raises(NGHTTP::HTTP2StreamResetError, /stream 1 was reset/) do
+      expect_raises(NGHTTP::HTTP2RefusedStreamError, /REFUSED_STREAM/) do
         session.get("#{url}/rst-stream", config: h2_config(session)) { }
       end
     end
