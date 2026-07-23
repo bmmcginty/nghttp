@@ -59,7 +59,7 @@ abstract class NGHTTP::Transport
   end
 
   def configure_alpn(ctx : OpenSSL::SSL::Context::Client)
-    ctx.alpn_protocol = protocol.alpn_id
+    ctx.alpn_protocols = protocol.alpn_ids
   end
 
   def select_alpn_protocol(socket : OpenSSL::SSL::Socket::Client)

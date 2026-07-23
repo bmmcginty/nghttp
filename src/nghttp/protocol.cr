@@ -21,6 +21,10 @@ module NGHTTP
       false
     end
 
+    def alpn_ids : Array(String)
+      [alpn_id]
+    end
+
     def self.for_alpn(protocol : String?)
       case protocol
       when nil, "", "http/1.1"

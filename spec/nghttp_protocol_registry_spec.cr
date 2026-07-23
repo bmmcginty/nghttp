@@ -19,6 +19,11 @@ describe NGHTTP::Protocol do
     NGHTTP::HTTP2Protocol.new.multiplexed?.should be_true
   end
 
+  it "exposes ALPN protocol preference order" do
+    NGHTTP::HTTP1Protocol.default.alpn_ids.should eq ["http/1.1"]
+    NGHTTP::HTTP2Protocol.new.alpn_ids.should eq ["h2", "http/1.1"]
+  end
+
   it "raises for unsupported negotiated protocols" do
     expect_raises(NGHTTP::UnsupportedProtocolError, /test-unsupported/) do
       NGHTTP::Protocol.for_alpn("test-unsupported")

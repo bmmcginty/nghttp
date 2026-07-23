@@ -19,6 +19,7 @@ Final desired state: HTTP/2 works over TLS ALPN and h2c for common request and r
 $ Patch local HPACK Huffman decoding so valid padded strings can span bytes
 $ Keep HPACK Huffman workaround isolated for an upstream http2 shard PR
 $ Patch local HTTP/2 HEADERS END_STREAM handling so empty bodies close correctly
+$ Advertise HTTP/1.1 fallback alongside h2 for TLS ALPN
 $ Add HTTP/2 POST and request body coverage
 $ Add HTTPS ALPN HTTP/2 coverage
 $ Make HTTP2Protocol construction safe per transport and hard to reuse incorrectly

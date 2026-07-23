@@ -22,6 +22,10 @@ module NGHTTP
       "h2"
     end
 
+    def alpn_ids : Array(String)
+      ["h2", HTTP1Protocol.default.alpn_id]
+    end
+
     def uses_host_header? : Bool
       false
     end
