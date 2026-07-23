@@ -16,6 +16,12 @@ s=socks.socks
 s.read_timeout = @read_timeout
 if env.request.uri.scheme=="https"
 ctx=OpenSSL::SSL::Context::Client.new
+if env.config.ca_paths?
+env.config.ca_paths.each { |i| ctx.ca_certificates = i }
+end
+if env.config.verify? == false
+ctx.verify_mode = OpenSSL::SSL::VerifyMode::None
+end
 configure_alpn ctx
 s=OpenSSL::SSL::Socket::Client.new s, context: ctx, hostname: env.request.uri.host.not_nil!, sync_close: true
 select_alpn_protocol s
