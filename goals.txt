@@ -16,6 +16,8 @@ $ Register HTTP/2 in protocol selection and ALPN once the implementation exists
 $ Make response body IO lifecycle work for multiplexed HTTP/2 streams
 $ Audit proxy behavior for HTTP/2, especially CONNECT and TLS-over-proxy negotiation
 Final desired state: HTTP/2 works over TLS ALPN and h2c for common request and response flows with safe fallback to HTTP/1
+$ Patch local HPACK Huffman decoding so valid padded strings can span bytes
+$ Keep HPACK Huffman workaround isolated for an upstream http2 shard PR
 $ Add HTTP/2 POST and request body coverage
 $ Add HTTPS ALPN HTTP/2 coverage
 $ Make HTTP2Protocol construction safe per transport and hard to reuse incorrectly
