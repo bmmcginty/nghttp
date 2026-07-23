@@ -36,6 +36,15 @@ describe NGHTTP::HTTP1Protocol do
     io.to_s.should contain "Host: example.com\r\n"
   end
 
+  it "writes / for empty origin-form request targets" do
+    env = protocol_env(url: "https://example.com")
+    io = IO::Memory.new
+
+    NGHTTP::HTTP1Protocol.request_to_http_io(env, io: io)
+
+    io.to_s.lines[0].should eq "GET / HTTP/1.1"
+  end
+
   it "writes absolute-form request targets when requested" do
     env = protocol_env
     io = IO::Memory.new

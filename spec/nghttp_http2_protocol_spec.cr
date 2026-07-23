@@ -78,6 +78,28 @@ private def with_headers_end_stream_server(&)
   end
 end
 
+private def with_http1_tls_alpn_server(&)
+  port = SpecServers.free_port
+  server = HTTP::Server.new do |context|
+    context.response.headers["content-type"] = "text/plain"
+    context.response << "http1 fallback"
+  end
+  context = OpenSSL::SSL::Context::Server.new
+  context.certificate_chain = "#{__DIR__}/support/certs/http2_server.crt"
+  context.private_key = "#{__DIR__}/support/certs/http2_server.key"
+  context.alpn_protocol = "http/1.1"
+  server.bind_tls(SpecServers::HOST, port, context)
+
+  spawn do
+    server.listen
+  end
+  SpecServers.wait_for_port(port, 5.seconds)
+
+  yield "https://#{SpecServers::HOST}:#{port}"
+ensure
+  server.close if server
+end
+
 describe NGHTTP::HTTP2Protocol do
   it "performs GET requests over HTTP/2 prior knowledge" do
     session = NGHTTP::Session.new
@@ -112,6 +134,19 @@ describe NGHTTP::HTTP2Protocol do
       resp.http_version.should eq "2"
       resp.status_code.should eq 200
       JSON.parse(resp.body)["path"].should eq "/get"
+    end
+  end
+
+  it "falls back to HTTP/1.1 when TLS ALPN selects HTTP/1.1" do
+    with_http1_tls_alpn_server do |url|
+      session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.verify = false
+
+      session.get(url, config: config) do |resp|
+        resp.http_version.should eq "1.1"
+        resp.body.should eq "http1 fallback"
+      end
     end
   end
 

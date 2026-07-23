@@ -67,7 +67,8 @@ module NGHTTP
                     else
                       "?#{q}"
                     end
-               path = req.uri.path.not_nil!
+               path = req.uri.path
+               path = "/" if path.nil? || path.empty?
                "#{path}#{qs}"
              end
       eurl = eurl.gsub(" ", "%20")

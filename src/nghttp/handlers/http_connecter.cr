@@ -29,6 +29,7 @@ class NGHTTP::HTTPConnecter
     proxy = proxy ? proxy : "direct:///"
     env.int_config.proxy = proxy
     do_connect = false
+    prepared_protocol = env.protocol
     env.connection = if env.int_config.transport?
                        do_connect = true
                        env.int_config.transport
@@ -43,7 +44,15 @@ class NGHTTP::HTTPConnecter
       env.connection.connect env
     end
     env.int_config.protocol = env.connection.protocol
+    reapply_protocol_request_headers(env) if prepared_protocol.name != env.connection.protocol.name
     setup_socket_debug env
+  end
+
+  private def reapply_protocol_request_headers(env)
+    KeepAlive.new.handle_request(env)
+    ContentLength.new.handle_request(env)
+    TransferEncoding.new.handle_request(env)
+    HostHeader.new.handle_request(env)
   end
 
   def setup_socket_debug(env)
