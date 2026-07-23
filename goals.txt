@@ -53,3 +53,4 @@ $ Cover HTTP/2 over TLS through HTTP CONNECT proxies
 $ Cover HTTP/1.1 ALPN fallback through HTTP CONNECT proxies
 $ Cover HTTP/2 through HTTPS CONNECT proxies
 $ Cover HTTP/2 over TLS through SOCKS5 proxies
+$ Cover HTTP/2 over TLS through SOCKS4 proxies
