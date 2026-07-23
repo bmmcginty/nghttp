@@ -73,6 +73,72 @@ private def local_connect_proxy(&)
   end
 end
 
+private def local_tls_connect_proxy(&)
+  done = Channel(Nil).new(1)
+  server = TCPServer.new("127.0.0.1", 0)
+  port = server.local_address.as(Socket::IPAddress).port
+  context = OpenSSL::SSL::Context::Server.new
+  context.certificate_chain = "#{__DIR__}/support/certs/http2_server.crt"
+  context.private_key = "#{__DIR__}/support/certs/http2_server.key"
+  context.alpn_protocol = "http/1.1"
+  received = Channel(Array(String)).new(1)
+
+  spawn do
+    client : OpenSSL::SSL::Socket::Server? = nil
+    upstream : TCPSocket? = nil
+    begin
+      tcp_client = server.accept
+      client = OpenSSL::SSL::Socket::Server.new(tcp_client, context, sync_close: true)
+      lines = read_proxy_headers(client)
+      received.send(lines)
+
+      target = lines[0].split(" ")[1]
+      host, port_text = target.split(":", 2)
+      upstream = TCPSocket.new(host, port_text.to_i)
+
+      client << "HTTP/1.1 200 Connection Established\r\n\r\n"
+      client.flush
+
+      pipe_done = Channel(Nil).new(2)
+      spawn do
+        copy_and_flush(client.not_nil!, upstream.not_nil!)
+      rescue
+      ensure
+        upstream.try(&.close)
+        pipe_done.send(nil)
+      end
+      spawn do
+        copy_and_flush(upstream.not_nil!, client.not_nil!)
+      rescue
+      ensure
+        client.try(&.close)
+        pipe_done.send(nil)
+      end
+      pipe_done.receive
+    ensure
+      client.try(&.close)
+      upstream.try(&.close)
+      done.send(nil)
+    end
+  end
+
+  yield "https://127.0.0.1:#{port}/?verify=0", received
+ensure
+  server.close if server && !server.closed?
+  select
+  when done.not_nil!.receive
+  when timeout(1.second)
+  end
+end
+
+private def copy_and_flush(source, destination)
+  buffer = Bytes.new(16 * 1024)
+  while (size = source.read(buffer)) > 0
+    destination.write(buffer[0, size])
+    destination.flush
+  end
+end
+
 private def local_http1_tls_server(alpn_protocol : String?, response_body : String, &)
   port = SpecServers.free_port
   server = HTTP::Server.new do |context|
@@ -239,6 +305,28 @@ describe NGHTTP::HttpProxy do
         lines = received.receive
         lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
       end
+    end
+  end
+
+  it "negotiates HTTP/2 through HTTPS CONNECT proxies" do
+    local_tls_connect_proxy do |proxy_url, received|
+      session = NGHTTP::Session.new
+      cfg = session.new_config
+      cfg.proxy = proxy_url
+      cfg.protocol = NGHTTP::HTTP2Protocol.new
+      cfg.verify = false
+      cfg.tries = 0
+      cfg.connect_timeout = 1.second
+      cfg.read_timeout = 1.second
+
+      session.get("#{SpecServers.http2_tls_url}/get", config: cfg) do |resp|
+        resp.http_version.should eq "2"
+        resp.status_code.should eq 200
+        JSON.parse(resp.body)["path"].should eq "/get"
+      end
+
+      lines = received.receive
+      lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
     end
   end
 end
