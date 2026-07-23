@@ -10,6 +10,12 @@ module NGHTTP
   class HTTP2Error < FatalError
   end
 
+  class HTTP2GoawayError < HTTP2Error
+  end
+
+  class HTTP2StreamResetError < HTTP2Error
+  end
+
   class HTTP2Protocol < Protocol
     def name : String
       "h2"
@@ -110,9 +116,9 @@ module NGHTTP
         when HTTP2::Frame::Type::HEADERS
           signal_request(frame.stream, nil)
         when HTTP2::Frame::Type::RST_STREAM
-          signal_request(frame.stream, HTTP2Error.new("HTTP/2 stream #{frame.stream.id} was reset"))
+          signal_request(frame.stream, HTTP2StreamResetError.new("HTTP/2 stream #{frame.stream.id} was reset"))
         when HTTP2::Frame::Type::GOAWAY
-          signal_all_requests(HTTP2Error.new("HTTP/2 connection received GOAWAY"))
+          signal_all_requests(HTTP2GoawayError.new("HTTP/2 connection received GOAWAY"))
           return
         end
       end

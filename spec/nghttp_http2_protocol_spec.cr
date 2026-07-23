@@ -6,7 +6,7 @@ private def h2_config(session)
   config
 end
 
-private def with_invalid_frame_server(&)
+private def with_raw_frame_server(frame : Bytes, &)
   port = SpecServers.free_port
   server = TCPServer.new(SpecServers::HOST, port)
   done = Channel(Nil).new
@@ -25,7 +25,7 @@ private def with_invalid_frame_server(&)
       socket.write(Bytes[0, 0, 0, 4, 0, 0, 0, 0, 0])
       socket.flush
       sleep 50.milliseconds
-      socket.write(Bytes[0, 0, 0, 1, 0, 0, 0, 0, 0])
+      socket.write(frame)
       socket.flush
     ensure
       socket.try(&.close)
@@ -39,6 +39,24 @@ ensure
   select
   when done.not_nil!.receive
   when timeout(1.second)
+  end
+end
+
+private def with_invalid_frame_server(&)
+  with_raw_frame_server(Bytes[0, 0, 0, 1, 0, 0, 0, 0, 0]) do |url|
+    yield url
+  end
+end
+
+private def with_goaway_server(&)
+  with_raw_frame_server(Bytes[0, 0, 8, 7, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]) do |url|
+    yield url
+  end
+end
+
+private def with_rst_stream_server(&)
+  with_raw_frame_server(Bytes[0, 0, 4, 3, 0, 0, 0, 0, 1, 0, 0, 0, 7]) do |url|
+    yield url
   end
 end
 
@@ -169,6 +187,26 @@ describe NGHTTP::HTTP2Protocol do
 
       expect_raises(NGHTTP::HTTP2Error, /connection failed/) do
         session.get("#{url}/invalid-frame", config: h2_config(session)) { }
+      end
+    end
+  end
+
+  it "raises a GOAWAY error when the HTTP/2 connection receives GOAWAY before response headers" do
+    with_goaway_server do |url|
+      session = NGHTTP::Session.new
+
+      expect_raises(NGHTTP::HTTP2GoawayError, /GOAWAY/) do
+        session.get("#{url}/goaway", config: h2_config(session)) { }
+      end
+    end
+  end
+
+  it "raises a stream reset error when an HTTP/2 stream receives RST_STREAM before response headers" do
+    with_rst_stream_server do |url|
+      session = NGHTTP::Session.new
+
+      expect_raises(NGHTTP::HTTP2StreamResetError, /stream 1 was reset/) do
+        session.get("#{url}/rst-stream", config: h2_config(session)) { }
       end
     end
   end
