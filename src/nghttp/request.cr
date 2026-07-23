@@ -24,9 +24,7 @@ class NGHTTP::Request
   def reset
     @headers.clear
     @body_io = @base_body_io
-    if body_io = @body_io
-      body_io.rewind
-    end
+    @body_io.try(&.rewind)
   end
 
   def method=(s : String)
