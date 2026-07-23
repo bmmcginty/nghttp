@@ -125,6 +125,33 @@ describe NGHTTP::HTTP2Protocol do
     end
   end
 
+  it "sends large POST request bodies over HTTP/2 flow-control windows" do
+    session = NGHTTP::Session.new
+    config = h2_config(session)
+    size = 26 * 4096
+    body = String.build(size) do |io|
+      size.times { |index| io.write_byte(('a'.ord + (index % 26)).to_u8) }
+    end
+
+    session.post("#{SpecServers.http2_url}/echo", body: body, config: config) do |resp|
+      resp.http_version.should eq "2"
+      resp.status_code.should eq 200
+      resp.body.should eq body
+    end
+  end
+
+  it "receives large response bodies over HTTP/2 flow-control windows" do
+    session = NGHTTP::Session.new
+    size = 26 * 4096
+
+    session.get("#{SpecServers.http2_url}/bytes/#{size}", config: h2_config(session)) do |resp|
+      body = resp.body
+      body.bytesize.should eq size
+      body[0, 26].should eq "abcdefghijklmnopqrstuvwxyz"
+      body[-26, 26].should eq "abcdefghijklmnopqrstuvwxyz"
+    end
+  end
+
   it "performs HTTPS requests over HTTP/2 negotiated with ALPN" do
     session = NGHTTP::Session.new
     config = h2_config(session)

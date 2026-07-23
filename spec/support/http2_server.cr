@@ -28,6 +28,10 @@ class H2FixtureHandler
     when "/echo"
       response.headers["content-type"] = request.headers["content-type"]? || "application/octet-stream"
       IO.copy(request.body.not_nil!, response)
+    when .starts_with?("/bytes/")
+      size = request.path.split("/").last.to_i
+      response.headers["content-type"] = "application/octet-stream"
+      response << repeated_body(size)
     when .starts_with?("/basic-auth/")
       _empty, _basic_auth, user, password = request.path.split("/", 4)
       expected = "Basic #{Base64.strict_encode("#{user}:#{password}")}"
@@ -76,6 +80,14 @@ class H2FixtureHandler
       parsed[key] = value
     end
     parsed
+  end
+
+  private def repeated_body(size)
+    String.build(size) do |io|
+      size.times do |index|
+        io.write_byte(('a'.ord + (index % 26)).to_u8)
+      end
+    end
   end
 end
 
