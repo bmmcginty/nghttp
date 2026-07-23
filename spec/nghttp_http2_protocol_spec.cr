@@ -128,16 +128,16 @@ private def with_trailers_server(&)
   end
 end
 
-private def with_http1_tls_alpn_server(&)
+private def with_http1_tls_server(alpn_protocol : String?, response_body : String, &)
   port = SpecServers.free_port
   server = HTTP::Server.new do |context|
     context.response.headers["content-type"] = "text/plain"
-    context.response << "http1 fallback"
+    context.response << response_body
   end
   context = OpenSSL::SSL::Context::Server.new
   context.certificate_chain = "#{__DIR__}/support/certs/http2_server.crt"
   context.private_key = "#{__DIR__}/support/certs/http2_server.key"
-  context.alpn_protocol = "http/1.1"
+  context.alpn_protocol = alpn_protocol if alpn_protocol
   server.bind_tls(SpecServers::HOST, port, context)
 
   spawn do
@@ -148,6 +148,18 @@ private def with_http1_tls_alpn_server(&)
   yield "https://#{SpecServers::HOST}:#{port}"
 ensure
   server.close if server
+end
+
+private def with_http1_tls_alpn_server(&)
+  with_http1_tls_server("http/1.1", "http1 fallback") do |url|
+    yield url
+  end
+end
+
+private def with_http1_tls_without_alpn_server(&)
+  with_http1_tls_server(nil, "http1 no alpn fallback") do |url|
+    yield url
+  end
 end
 
 private def with_max_concurrent_one_server(&)
@@ -349,6 +361,19 @@ describe NGHTTP::HTTP2Protocol do
       session.get(url, config: config) do |resp|
         resp.http_version.should eq "1.1"
         resp.body.should eq "http1 fallback"
+      end
+    end
+  end
+
+  it "falls back to HTTP/1.1 when TLS ALPN negotiates no protocol" do
+    with_http1_tls_without_alpn_server do |url|
+      session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.verify = false
+
+      session.get(url, config: config) do |resp|
+        resp.http_version.should eq "1.1"
+        resp.body.should eq "http1 no alpn fallback"
       end
     end
   end
