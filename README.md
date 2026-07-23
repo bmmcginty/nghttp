@@ -34,8 +34,10 @@ end
 The spec suite starts a local Python httpbin process by default.
 Set `NGHTTP_SPEC_HTTPBIN_URL` to use an already-running httpbin server instead.
 Set `NGHTTP_SPEC_KEEP_ALIVE_URL` to use an already-running keep-alive test server.
+HTTP/2 specs use local h2c and TLS ALPN servers by default.
+Set `NGHTTP_SPEC_EXTERNAL_HTTP2_URL` to run the opt-in external HTTP/2 interoperability spec.
 
-See `spec/nghttp_spec.cr`.
+See `spec/nghttp_spec.cr`, `spec/nghttp_http2_protocol_spec.cr`, and `docs/http2-ci.md`.
 
 ## Development
 
