@@ -202,6 +202,64 @@ ensure
   end
 end
 
+private def write_raw_h2_response(socket, body, goaway = false)
+  headers = HTTP2::HPACK::Encoder.new(huffman: false).encode(HTTP::Headers{
+    ":status"      => "200",
+    "content-type" => "text/plain",
+  })
+  socket.write(raw_frame(1, 4, 1, headers))
+  socket.write(raw_frame(0, 1, 1, body.to_slice))
+  socket.write(raw_frame(7, 0, 0, Bytes[0, 0, 0, 1, 0, 0, 0, 0])) if goaway
+  socket.flush
+end
+
+private def accept_raw_h2_request(server)
+  socket = server.accept
+  socket.read_fully(Bytes.new(24))
+  read_raw_frame(socket)
+  socket.write(raw_frame(4, 0, 0))
+  socket.flush
+
+  loop do
+    type, stream_id = read_raw_frame(socket)
+    break if type == 1 && stream_id == 1
+  end
+  socket
+end
+
+private def with_goaway_then_reconnect_server(&)
+  port = SpecServers.free_port
+  server = TCPServer.new(SpecServers::HOST, port)
+  accepted = Channel(Nil).new(2)
+  done = Channel(Nil).new
+
+  spawn do
+    first : TCPSocket? = nil
+    second : TCPSocket? = nil
+    begin
+      first = accept_raw_h2_request(server)
+      accepted.send(nil)
+      write_raw_h2_response(first, "first", goaway: true)
+
+      second = accept_raw_h2_request(server)
+      accepted.send(nil)
+      write_raw_h2_response(second, "second")
+    ensure
+      first.try(&.close)
+      second.try(&.close)
+      done.send(nil)
+    end
+  end
+
+  yield "http://#{SpecServers::HOST}:#{port}", accepted
+ensure
+  server.close if server
+  select
+  when done.not_nil!.receive
+  when timeout(1.second)
+  end
+end
+
 describe NGHTTP::HTTP2Protocol do
   it "performs GET requests over HTTP/2 prior knowledge" do
     session = NGHTTP::Session.new
@@ -386,6 +444,24 @@ describe NGHTTP::HTTP2Protocol do
         when timeout(300.milliseconds)
         end
       end
+    end
+  end
+
+  it "opens a fresh HTTP/2 connection for requests after GOAWAY" do
+    with_goaway_then_reconnect_server do |url, accepted|
+      session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.connections_per_host = 1
+
+      session.get("#{url}/first", config: config) do |resp|
+        resp.body.should eq "first"
+      end
+
+      session.get("#{url}/second", config: config) do |resp|
+        resp.body.should eq "second"
+      end
+
+      2.times { accepted.receive }
     end
   end
 

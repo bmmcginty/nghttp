@@ -138,12 +138,12 @@ module NGHTTP
           raise UnsupportedProtocolError.new("Expected HTTP/2 SETTINGS frame")
         end
 
-        spawn receive_frames(connection)
+        spawn receive_frames(connection, env.connection)
         connection
       end
     end
 
-    private def receive_frames(connection)
+    private def receive_frames(connection, transport)
       while frame = connection.receive
         case frame.type
         when HTTP2::Frame::Type::HEADERS
@@ -151,6 +151,7 @@ module NGHTTP
         when HTTP2::Frame::Type::RST_STREAM
           signal_request(frame.stream, stream_reset_error(frame))
         when HTTP2::Frame::Type::GOAWAY
+          transport.require_reconnect = true
           signal_all_requests(HTTP2GoawayError.new("HTTP/2 connection received GOAWAY"))
           return
         end
