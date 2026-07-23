@@ -6,6 +6,10 @@ private def h2_config(session)
   config
 end
 
+private def external_http2_url
+  ENV["NGHTTP_SPEC_EXTERNAL_HTTP2_URL"]?.try(&.chomp("/"))
+end
+
 private def with_raw_frame_server(frames : Array(Bytes), &)
   port = SpecServers.free_port
   server = TCPServer.new(SpecServers::HOST, port)
@@ -309,6 +313,18 @@ describe NGHTTP::HTTP2Protocol do
       body.bytesize.should eq size
       body[0, 26].should eq "abcdefghijklmnopqrstuvwxyz"
       body[-26, 26].should eq "abcdefghijklmnopqrstuvwxyz"
+    end
+  end
+
+  it "interoperates with an external HTTP/2 httpbin-compatible server" do
+    pending!("set NGHTTP_SPEC_EXTERNAL_HTTP2_URL to run external HTTP/2 interop specs") unless base_url = external_http2_url
+
+    session = NGHTTP::Session.new
+
+    session.get("#{base_url}/get", config: h2_config(session)) do |resp|
+      resp.http_version.should eq "2"
+      resp.status_code.should eq 200
+      JSON.parse(resp.body)["url"].as_s.should contain "/get"
     end
   end
 
