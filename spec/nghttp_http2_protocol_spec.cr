@@ -98,6 +98,40 @@ private def with_rst_stream_server(&)
   end
 end
 
+private def with_refused_stream_then_ok_server(&)
+  port = SpecServers.free_port
+  server = TCPServer.new(SpecServers::HOST, port)
+  accepted = Channel(Nil).new(2)
+  done = Channel(Nil).new
+
+  spawn do
+    first : TCPSocket? = nil
+    second : TCPSocket? = nil
+    begin
+      first = accept_raw_h2_request(server)
+      accepted.send(nil)
+      first.write(raw_frame(3, 0, 1, Bytes[0, 0, 0, 7]))
+      first.flush
+
+      second = accept_raw_h2_request(server)
+      accepted.send(nil)
+      write_raw_h2_response(second, "retried")
+    ensure
+      first.try(&.close)
+      second.try(&.close)
+      done.send(nil)
+    end
+  end
+
+  yield "http://#{SpecServers::HOST}:#{port}", accepted
+ensure
+  server.close if server
+  select
+  when done.not_nil!.receive
+  when timeout(1.second)
+  end
+end
+
 private def with_headers_end_stream_server(&)
   payload = HTTP2::HPACK::Encoder.new(huffman: false).encode(HTTP::Headers{
     ":status" => "204",
@@ -529,10 +563,27 @@ describe NGHTTP::HTTP2Protocol do
   it "raises a refused stream error when an HTTP/2 stream receives REFUSED_STREAM before response headers" do
     with_rst_stream_server do |url|
       session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.tries = 0
 
       expect_raises(NGHTTP::HTTP2RefusedStreamError, /REFUSED_STREAM/) do
-        session.get("#{url}/rst-stream", config: h2_config(session)) { }
+        session.get("#{url}/rst-stream", config: config) { }
       end
+    end
+  end
+
+  it "retries HTTP/2 REFUSED_STREAM on a fresh connection" do
+    with_refused_stream_then_ok_server do |url, accepted|
+      session = NGHTTP::Session.new
+      config = h2_config(session)
+      config.connections_per_host = 1
+      config.tries = 1
+
+      session.get("#{url}/rst-stream", config: config) do |resp|
+        resp.body.should eq "retried"
+      end
+
+      2.times { accepted.receive }
     end
   end
 

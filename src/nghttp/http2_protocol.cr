@@ -43,7 +43,7 @@ module NGHTTP
   class HTTP2StreamResetError < HTTP2Error
   end
 
-  class HTTP2RefusedStreamError < HTTP2StreamResetError
+  class HTTP2RefusedStreamError < RetryableError
   end
 
   class HTTP2Protocol < Protocol
