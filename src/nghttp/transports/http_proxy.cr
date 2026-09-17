@@ -25,8 +25,9 @@ module NGHTTP
       if env.request.uri.scheme == "https"
         origin = env.int_config.origin
         port = env.int_config.port
-        s << "CONNECT #{origin}:#{port} HTTP/1.1\r\n"
-        s << "Host: #{origin}:#{port}\r\n"
+        target = connect_authority(env.int_config.connect_host, port)
+        s << "CONNECT #{target} HTTP/1.1\r\n"
+        s << "Host: #{target}\r\n"
         if auth_header = proxy_authorization_header(env, proxy_uri)
           s << "Proxy-Authorization: #{auth_header}\r\n"
         end
@@ -70,6 +71,9 @@ module NGHTTP
       if useLongUrl && !protocol.is_a?(HTTP1Protocol)
         raise UnsupportedProtocolError.new("HTTP/2 over forward HTTP proxies is not supported")
       end
+      if useLongUrl && (connect_host = env.int_config.connect_host?) && connect_host != env.int_config.origin
+        raise UnsupportedProtocolError.new("DNS overrides over forward HTTP proxies are not supported")
+      end
 
       # if we're an http url, add creds here instead of in a connect method
       if useLongUrl
@@ -79,6 +83,11 @@ module NGHTTP
       end
 
       protocol.handle_request env, useLongUrl
+    end
+
+    private def connect_authority(host, port)
+      host = "[#{host}]" if host.includes?(':')
+      "#{host}:#{port}"
     end
 
     private def proxy_authorization_header(env, proxy_uri)

@@ -237,6 +237,28 @@ describe NGHTTP::HttpProxy do
     end
   end
 
+  it "rejects DNS overrides over forward HTTP proxies" do
+    session = NGHTTP::Session.new
+    env = session.new_env(nil)
+    env.request = session.new_request(
+      method: "GET",
+      url: "http://example.invalid/proxy-path",
+      params: nil,
+      body: nil,
+      headers: nil
+    )
+    env.int_config.proxy = "http://127.0.0.1:1/"
+    env.int_config.origin = "example.invalid"
+    env.int_config.connect_host = "127.0.0.1"
+    queue = Channel(NGHTTP::Transport).new(1)
+    transport = NGHTTP::HttpProxy.new(queue)
+    env.connection = transport
+
+    expect_raises(NGHTTP::UnsupportedProtocolError, /DNS overrides over forward HTTP proxies/) do
+      transport.handle_request(env)
+    end
+  end
+
   it "sends proxy auth on CONNECT requests" do
     local_proxy do |server, port|
       received = Channel(Array(String)).new(1)
@@ -284,6 +306,29 @@ describe NGHTTP::HttpProxy do
 
       lines = received.receive
       lines[0].should match /^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/
+    end
+  end
+
+  it "uses a DNS override as the CONNECT target" do
+    local_http1_tls_server("http/1.1", "overridden target") do |origin_url|
+      local_connect_proxy do |proxy_url, received|
+        uri = URI.parse(origin_url)
+        uri.host = "example.invalid"
+
+        session = NGHTTP::Session.new
+        cfg = session.new_config
+        cfg.proxy = proxy_url
+        cfg.dns_override = {"example.invalid" => "127.0.0.1"}
+        cfg.verify = false
+        cfg.tries = 0
+
+        session.get(uri.to_s, config: cfg) do |resp|
+          resp.body.should eq "overridden target"
+        end
+
+        lines = received.receive
+        lines[0].should match(/^CONNECT 127\.0\.0\.1:\d+ HTTP\/1\.1$/)
+      end
     end
   end
 

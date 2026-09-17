@@ -224,6 +224,19 @@ ensure
   end
 end
 
+private def local_http_origin(&)
+  received_host = Channel(String).new(1)
+  server = HTTP::Server.new do |context|
+    received_host.send(context.request.headers["Host"])
+    context.response << "overridden target"
+  end
+  address = server.bind_tcp("127.0.0.1", 0)
+  spawn { server.listen }
+  yield address.port, received_host
+ensure
+  server.close if server
+end
+
 private def assert_http2_over_socks(
   proxy_url,
   received,
@@ -249,6 +262,25 @@ private def assert_http2_over_socks(
 end
 
 describe NGHTTP::Socks5Proxy do
+  it "sends the overridden IP to the proxy while preserving the HTTP hostname" do
+    local_http_origin do |origin_port, received_host|
+      local_socks5_proxy do |proxy_url, received|
+        session = NGHTTP::Session.new
+        cfg = session.new_config
+        cfg.proxy = proxy_url
+        cfg.dns_override = {"example.invalid" => "127.0.0.1"}
+        cfg.tries = 0
+
+        session.get("http://example.invalid:#{origin_port}/", config: cfg) do |resp|
+          resp.body.should eq "overridden target"
+        end
+
+        received.receive.should eq "127.0.0.1:#{origin_port}"
+        received_host.receive.should eq "example.invalid:#{origin_port}"
+      end
+    end
+  end
+
   it "negotiates HTTP/2 over TLS through SOCKS5 proxies" do
     local_socks5_proxy do |proxy_url, received|
       assert_http2_over_socks(proxy_url, received)

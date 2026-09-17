@@ -5,6 +5,7 @@ class NGHTTP::Config
   @cfg = Hash(String, Array(String) |
                       Bool |
                       Int32 |
+                      Hash(String, String) |
                       IO |
                       Nil |
                       String |
@@ -67,6 +68,9 @@ end
   hk protocol : Protocol
   hk offset : Range(Int32, Int32) | Int32
   hk proxy : String
+  # Literal IP addresses to use when connecting to selected origin hostnames.
+  # The request URI, Host header, HTTP/2 authority, and TLS hostname remain unchanged.
+  hk dns_override : Hash(String, String)
   hk connections_per_host : Int32
   hk connect_timeout : Time::Span
   hk dns_timeout : Time::Span

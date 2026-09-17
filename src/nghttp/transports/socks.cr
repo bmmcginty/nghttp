@@ -6,11 +6,11 @@ class NGHTTP::{{i.id}}Proxy < NGHTTP::DirectConnection
 getter! :socks
 
 def connect(env : HTTPEnv)
-origin=env.int_config.origin.as(String)
+connect_host=env.int_config.connect_host.as(String)
 port=env.int_config.port.as(Int32)
 proxy_uri=URI.parse env.int_config.proxy
 @socks=::Socks::{{i.id}}.new proxy_uri.host.not_nil!, proxy_uri.port.not_nil!, proxy_uri.user, proxy_uri.password
-socks.connect origin,port
+socks.connect connect_host,port
 s=socks.socks
 @rawsocket=s
 s.read_timeout = @read_timeout

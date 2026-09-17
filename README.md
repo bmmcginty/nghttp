@@ -29,6 +29,18 @@ resp.xml
 end
 ```
 
+### DNS overrides
+
+Use `dns_override` to connect selected origin hostnames to literal IP addresses without changing the request hostname, TLS SNI, or certificate hostname:
+
+```crystal
+s.config.dns_override = {
+  "example.org" => "127.0.0.1",
+}
+```
+
+Overrides apply to direct, SOCKS, and HTTP CONNECT connections. They are not supported for plain HTTP requests through a forward HTTP proxy because that proxy controls origin DNS resolution.
+
 ## Testing
 
 The spec suite starts a local Python httpbin process by default.

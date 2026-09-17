@@ -17,10 +17,13 @@ class NGHTTP::ConnectionManager
            else
              80
            end
+    connect_host = connection_host(env, host, port)
     env.int_config.origin = host
     env.int_config.port = port
+    env.int_config.connect_host = connect_host
     # We'll make cph connections per origin, even if that means we are making multiple connections to the same proxy.
-    key = "#{host}:#{port}:#{proxy.to_s}:#{env.protocol.name}"
+    # Include the effective destination so a changed override cannot reuse a connection to an old address.
+    key = "#{host}:#{port}:#{connect_host}:#{proxy.to_s}:#{env.protocol.name}"
     if !@all[key]?
       cls = case proxy_proto
             when "direct"
@@ -43,6 +46,26 @@ class NGHTTP::ConnectionManager
     conn = @all[key].receive.acquire
     do_connect = prep_connect env, conn
     {conn, do_connect}
+  end
+
+  private def connection_host(env, origin, port)
+    overrides = env.config.dns_override?
+    return origin unless overrides
+
+    normalized_origin = normalize_hostname(origin)
+    overrides.each do |hostname, address|
+      next unless normalize_hostname(hostname) == normalized_origin
+
+      # DNS overrides intentionally accept IP literals only. This prevents an
+      # override from silently performing another DNS lookup.
+      Socket::IPAddress.new(address, port)
+      return address
+    end
+    origin
+  end
+
+  private def normalize_hostname(hostname)
+    hostname.downcase.chomp(".")
   end
 
   def create_transport_queue(env, key, cls)

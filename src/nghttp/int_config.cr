@@ -16,6 +16,8 @@ class NGHTTP::IntConfig < NGHTTP::Config
   hk origin : String
   # The port of the destination web server.
   hk port : Int32
+  # The hostname or overridden IP address used for the network connection.
+  hk connect_host : String
   # Set by a handler.
   # used instead of env.config.proxy because we use direct:/// as a url when env.config.proxy isn't set.
   hk proxy : String
@@ -36,7 +38,7 @@ class NGHTTP::IntConfig < NGHTTP::Config
   # it should be explicitly cleared in a handle_request method of a handler.
   # Otherwise, previous requests could taint redirected requests.
   def reset
-    %w(proxy port origin discard_cache transport from_cache to_cache).each do |k|
+    %w(proxy port origin connect_host discard_cache transport from_cache to_cache).each do |k|
       @cfg.delete k
     end
   end # def

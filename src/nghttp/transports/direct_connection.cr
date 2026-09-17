@@ -9,9 +9,9 @@ class NGHTTP::DirectConnection < NGHTTP::Transport
   getter! socket
 
   def connect(env : HTTPEnv)
-    origin = env.int_config.origin.as(String)
+    connect_host = env.int_config.connect_host.as(String)
     port = env.int_config.port.as(Int32)
-    s = TCPSocket.new origin, port, @dns_timeout, @connect_timeout
+    s = TCPSocket.new connect_host, port, @dns_timeout, @connect_timeout
     s.read_timeout = @read_timeout
     @rawsocket = s
     if env.request.uri.scheme == "https"
