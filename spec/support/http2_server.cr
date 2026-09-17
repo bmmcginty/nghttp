@@ -1,4 +1,4 @@
-require "../../src/nghttp/http2_shard_compat"
+require "../../src/nghttp"
 require "http2/server"
 require "base64"
 require "json"

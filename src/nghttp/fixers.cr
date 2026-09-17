@@ -1,3 +1,18 @@
+# http2 <= 0.4 uses the scheduler API that Crystal 1.21 replaced with
+# Fiber#enqueue and Fiber.suspend. Keep the compatibility here instead of
+# modifying the vendored shard.
+{% if compare_versions(Crystal::VERSION, "1.21.0") >= 0 && !flag?(:preview_mt) %}
+  class Crystal::Scheduler
+    def self.enqueue(fiber : Fiber) : Nil
+      fiber.enqueue
+    end
+
+    def self.reschedule : Nil
+      Fiber.suspend
+    end
+  end
+{% end %}
+
 module HTTP::Cookie::Parser
   def parse_set_cookie(header)
     match = header.match(SetCookieString)
